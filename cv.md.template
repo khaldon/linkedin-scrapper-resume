@@ -1,0 +1,60 @@
+# Your Name
+## Your Professional Title
+
+**Email:** your.email@example.com | **Phone:** +1234567890 | **Location:** Your City, Country
+**Links:** [LinkedIn](https://linkedin.com/in/yourprofile) | [GitHub](https://github.com/yourusername)
+
+### Professional Summary
+Write a brief summary of your professional experience, skills, and career objectives. This should be 2-3 sentences highlighting your key strengths and what you bring to potential employers.
+
+### Technical Skills
+- **Programming:** List your programming languages
+- **Frameworks:** List frameworks and libraries you use
+- **Tools:** List tools and technologies
+- **Other Skills:** Any other relevant technical skills
+
+### Professional Experience
+
+**Job Title** | *Company Name* | *City, Country* | *Start Date - End Date*
+- Describe your key responsibilities and achievements
+- Use action verbs and quantify results where possible
+- Focus on impact and outcomes
+- Include relevant technologies and methodologies used
+
+**Previous Job Title** | *Previous Company* | *City, Country* | *Start Date - End Date*
+- Another set of responsibilities and achievements
+- Continue with the same format
+- Highlight transferable skills
+- Mention any notable projects or initiatives
+
+### Education
+
+**Degree Name** | *University Name* | *City, Country* | *Graduation Year*
+- Major/Specialization
+- Relevant coursework or honors (optional)
+- GPA (if impressive, optional)
+
+### Projects
+
+**Project Name**
+- Brief description of the project
+- Technologies used
+- Your role and contributions
+- Impact or results achieved
+
+### Certifications (Optional)
+- Certification Name - Issuing Organization (Year)
+- Another Certification - Issuing Organization (Year)
+
+### Languages (Optional)
+- English - Native/Fluent
+- Other Language - Proficiency Level
+
+---
+
+**Instructions:**
+1. Replace all placeholder text with your actual information
+2. Remove sections that don't apply to you
+3. Add sections that are relevant to your field
+4. Keep it concise (1-2 pages)
+5. Use this as your `cv.md` file for the scraper

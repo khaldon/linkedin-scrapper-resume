@@ -1,15 +1,36 @@
+# Environment Variables (IMPORTANT: Contains sensitive credentials)
+.env
+.env.local
+.env.*.local
+
 # Virtual Environment
 venv/
 env/
 .venv/
 
-# Data files
-data/output/
+# Data files (Contains personal/scraped data)
+data/
 logs/
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated CVs and PDFs
+*.pdf
+tailored_cv_*.md
+cv.md
+
+# Browser data and scraped content
+cookies.json
+data/*.json
+last_scrape.json
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # Python
 __pycache__/
@@ -17,3 +38,18 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+playwright/.auth/
+
+# UV lock file (optional - some prefer to commit this)
+# uv.lock
