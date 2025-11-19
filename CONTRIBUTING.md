@@ -1,84 +1,70 @@
-# Contributing to LinkedIn Job Scraper + AI CV Generator
+# Contributing to LinkedIn Scraper Resume
 
-Thank you for your interest in contributing! This project helps job seekers create tailored CVs using AI.
+Thank you for your interest in contributing! 🎉
 
-## 🚀 Getting Started
+## 📋 How to Contribute
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/playwright-scraper.git`
-3. Create a branch: `git checkout -b feature/your-feature-name`
-4. Make your changes
-5. Test thoroughly
-6. Submit a pull request
+1. **Fork the repository**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/linkedin-scraper-resume.git
+   cd linkedin-scraper-resume
+   ```
+2. **Create a new branch** for your feature or bug‑fix:
+   ```bash
+   git checkout -b feature/awesome-feature
+   ```
+3. **Make your changes** – keep them focused and small.
+4. **Run the test scripts** to ensure everything still works:
+   ```bash
+   uv run python test_gemini_api.py
+   ```
+5. **Commit with a clear message**:
+   ```bash
+   git add .
+   git commit -m "feat: add awesome feature"
+   ```
+6. **Push and open a Pull Request**:
+   ```bash
+   git push origin feature/awesome-feature
+   ```
+   Then open a PR on GitHub targeting the `main` branch.
 
-## 🔧 Development Setup
+## 🛠️ Development Setup
 
 ```bash
-# Install dependencies
+# Install dependencies (requires uv)
 uv sync
 
 # Install Playwright browsers
 uv run playwright install chromium
 
-# Copy environment template
+# Copy environment template and fill in your credentials
 cp .env.example .env
-
-# Add your credentials to .env
+# Edit .env with your LinkedIn and Gemini API details
 ```
 
-## 📝 Code Style
+## ✅ Code Style & Quality
 
-- Follow PEP 8 for Python code
-- Use type hints where appropriate
-- Add docstrings to functions and classes
-- Keep functions focused and small
-- Write descriptive commit messages
-
-## 🧪 Testing
-
-Before submitting a PR:
-
-```bash
-# Test the scraper
-uv run python main.py
-
-# Test the API integration
-uv run python test_gemini_api.py
-```
+- Follow **PEP 8** conventions.
+- Add **type hints** where appropriate.
+- Include **docstrings** for public functions/classes.
+- Run **ruff** or **flake8** locally before committing.
 
 ## 🐛 Reporting Bugs
 
-When reporting bugs, please include:
+- Open an issue with a clear title.
+- Include steps to reproduce, expected vs actual behavior, and any error logs.
+- Attach screenshots or logs if helpful.
 
-- Python version
-- Operating system
-- Steps to reproduce
-- Expected vs actual behavior
-- Error messages and logs
+## 📚 Documentation
 
-## 💡 Feature Requests
+- Keep the `README.md` up‑to‑date.
+- Add or update any relevant docs in the `docs/` folder (if created).
 
-We welcome feature requests! Please:
+## 🤝 Code of Conduct
 
-- Check if it's already been requested
-- Explain the use case
-- Describe the expected behavior
+All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## 🔒 Security
+## 🎉 Thank You!
 
-**NEVER commit:**
-- API keys
-- Passwords
-- Personal data
-- Scraped job data
-- Generated CVs
-
-Always use `.env` for sensitive data.
-
-## 📜 License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
-
-## 🙏 Thank You!
-
-Every contribution helps make job searching easier for everyone!
+Your contributions help make job searching easier for everyone. Happy coding! 🚀
