@@ -11,13 +11,13 @@ class LLMGenerator:
     LLM Generator using Google's Gemini API for CV tailoring.
     """
     
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-1.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"):
         """
         Initialize the LLM Generator with Google Gemini API.
         
         Args:
             api_key: Google API key. If not provided, will try to get from GOOGLE_API_KEY env var
-            model_name: Gemini model to use (default: gemini-1.5-flash)
+            model_name: Gemini model to use (default: gemini-2.5-flash)
         """
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         self.model_name = model_name
@@ -71,7 +71,15 @@ class LLMGenerator:
             
             if response and response.text:
                 logger.info("✅ Successfully generated tailored CV")
-                return response.text
+                # Clean up the response - remove markdown code blocks if present
+                cleaned_text = response.text.strip()
+                if cleaned_text.startswith("```markdown"):
+                    cleaned_text = cleaned_text[len("```markdown"):].strip()
+                elif cleaned_text.startswith("```"):
+                    cleaned_text = cleaned_text[3:].strip()
+                if cleaned_text.endswith("```"):
+                    cleaned_text = cleaned_text[:-3].strip()
+                return cleaned_text
             else:
                 logger.warning("Empty response from API. Using simulated response.")
                 return self._simulate_response(job_description)
