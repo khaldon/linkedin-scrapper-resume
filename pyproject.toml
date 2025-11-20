@@ -31,9 +31,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/khaldon/linkedin-scraper-resume"
-Repository = "https://github.com/khaldon/linkedin-scraper-resume.git"
-Issues = "https://github.com/khaldon/linkedin-scraper-resume/issues"
+Homepage = "https://github.com/khaldon/linkedin-scrapper-resume"
+Repository = "https://github.com/khaldon/linkedin-scrapper-resume.git"
+Issues = "https://github.com/khaldon/linkedin-scrapper-resume/issues"
 
 [tool.uv.sources]
 en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }

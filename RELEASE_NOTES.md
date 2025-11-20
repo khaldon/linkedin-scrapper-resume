@@ -20,8 +20,8 @@
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/linkedin-scraper-resume.git
-cd linkedin-scraper-resume
+git clone https://github.com/khaldon/linkedin-scrapper-resume.git
+cd linkedin-scrapper-resume
 
 # Install dependencies (uv required)
 uv sync
