@@ -46,8 +46,16 @@ RUN python -m spacy download en_core_web_sm
 # Copy application code
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p data logs static
+# Create necessary directories and set permissions
+RUN mkdir -p data logs static && \
+    chmod 777 data logs static
+
+# Create a non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose port
 EXPOSE 8080
@@ -55,6 +63,7 @@ EXPOSE 8080
 # Set environment variables
 ENV PORT=8080
 ENV PYTHONUNBUFFERED=1
+ENV DATABASE_PATH=/app/data/jobs.db
 
 # Run the application
 CMD exec uvicorn api:app --host 0.0.0.0 --port ${PORT} --workers 1

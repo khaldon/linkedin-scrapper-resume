@@ -4,8 +4,12 @@ from datetime import datetime
 from typing import Dict, Optional
 
 class Database:
-    def __init__(self, db_path: str = "data/jobs.db"):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None):
+        if db_path is None:
+            import os
+            self.db_path = os.getenv("DATABASE_PATH", "data/jobs.db")
+        else:
+            self.db_path = db_path
         self._init_db()
 
     def _init_db(self):
