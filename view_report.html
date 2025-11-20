@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Market Analysis Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header .meta {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .section h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin: 30px 0 15px 0;
+        }
+
+        .section p,
+        .section li {
+            font-size: 1.1em;
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .section li {
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .section li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+
+        .chart-container {
+            margin: 30px 0;
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .chart-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card .number {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .label {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .recommendations {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .recommendations h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .recommendations ol {
+            padding-left: 20px;
+        }
+
+        .recommendations li {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            color: #666;
+            font-style: italic;
+        }
+
+        .emoji {
+            font-size: 1.3em;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Job Market Analysis Report</h1>
+            <div class="meta">
+                <p><strong>Analysis Date:</strong> <span id="date"></span></p>
+                <p><strong>Total Jobs Analyzed:</strong> <span id="total-jobs"></span></p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>🎯 Executive Summary</h2>
+                <p>This report analyzes job postings to identify the most in-demand skills, technologies, and
+                    qualifications in the current job market. The insights can help you focus your learning and
+                    highlight the right skills on your resume.</p>
+            </div>
+
+            <div class="section">
+                <h3>💻 Key Technology Trends</h3>
+                <p id="tech-summary"></p>
+                <div class="chart-container">
+                    <img src="data/chart_technologies.png" alt="Technologies Chart">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🔤 Programming Languages in Demand</h3>
+                <div id="lang-summary"></div>
+                <div class="chart-container">
+                    <img src="data/chart_languages.png" alt="Languages Chart">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🤝 Essential Soft Skills</h3>
+                <p>Employers are looking for candidates with these interpersonal abilities:</p>
+                <div id="soft-summary"></div>
+                <div class="chart-container">
+                    <img src="data/chart_soft_skills.png" alt="Soft Skills Chart">
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>🎓 Technical Competencies</h3>
+                <div id="hard-summary"></div>
+                <div class="chart-container">
+                    <img src="data/chart_hard_skills.png" alt="Hard Skills Chart">
+                </div>
+            </div>
+
+            <div class="section recommendations">
+                <h2>💡 What This Means For You</h2>
+                <p><strong>To maximize your job prospects:</strong></p>
+                <ol id="recommendations-list">
+                </ol>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This analysis is based on job descriptions stored in your local database. Results may vary based on
+                industry, location, and job level.</p>
+        </div>
+    </div>
+
+    <script>
+        // Load data from JSON file
+        fetch('data/stats_data.json')
+            .then(response => response.json())
+            .then(data => {
+                // Populate basic info
+                document.getElementById('date').textContent = data.date;
+                document.getElementById('total-jobs').textContent = data.total_jobs;
+
+                // Technologies
+                if (data.technologies && data.technologies.length > 0) {
+                    let techHTML = 'The top 3 most demanded technologies are:<br>';
+                    data.technologies.forEach((tech, index) => {
+                        techHTML += `${index + 1}. <strong>${tech.name}</strong> - Mentioned in ${tech.percentage}% of jobs<br>`;
+                    });
+                    document.getElementById('tech-summary').innerHTML = techHTML;
+                }
+
+                // Languages
+                if (data.languages && data.languages.length > 0) {
+                    let langHTML = '';
+                    data.languages.forEach((lang, index) => {
+                        langHTML += `${index + 1}. <strong>${lang.name}</strong> - Required in ${lang.percentage}% of positions<br>`;
+                    });
+                    document.getElementById('lang-summary').innerHTML = langHTML;
+                }
+
+                // Soft Skills
+                if (data.soft_skills && data.soft_skills.length > 0) {
+                    let softHTML = '';
+                    data.soft_skills.forEach((skill, index) => {
+                        softHTML += `${index + 1}. <strong>${skill.name}</strong> - Valued in ${skill.percentage}% of roles<br>`;
+                    });
+                    document.getElementById('soft-summary').innerHTML = softHTML;
+                }
+
+                // Hard Skills
+                if (data.hard_skills && data.hard_skills.length > 0) {
+                    let hardHTML = '';
+                    data.hard_skills.forEach((skill, index) => {
+                        hardHTML += `${index + 1}. <strong>${skill.name}</strong> - Needed in ${skill.percentage}% of jobs<br>`;
+                    });
+                    document.getElementById('hard-summary').innerHTML = hardHTML;
+                }
+
+                // Recommendations
+                if (data.recommendations && data.recommendations.length > 0) {
+                    let recHTML = '';
+                    data.recommendations.forEach(rec => {
+                        recHTML += `<li><strong>${rec}</strong></li>`;
+                    });
+                    document.getElementById('recommendations-list').innerHTML = recHTML;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading stats data:', error);
+                // Fallback to placeholder data
+                document.getElementById('date').textContent = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                document.getElementById('total-jobs').textContent = 'N/A';
+                document.getElementById('tech-summary').innerHTML = '<em>No data available. Please run the analysis first.</em>';
+            });
+    </script>
+</body>
+
+</html>

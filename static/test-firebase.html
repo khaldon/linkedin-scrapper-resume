@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: white;
+            border-left: 4px solid #4285f4;
+        }
+
+        .success {
+            border-left-color: #0f9d58;
+        }
+
+        .error {
+            border-left-color: #db4437;
+        }
+
+        .warning {
+            border-left-color: #f4b400;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            background: #4285f4;
+            color: white;
+        }
+
+        button:hover {
+            background: #357ae8;
+        }
+
+        pre {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔥 Firebase Authentication Test</h1>
+
+    <div id="status"></div>
+
+    <h2>Test Steps:</h2>
+    <button onclick="testFirebaseLoaded()">1. Test Firebase SDK</button>
+    <button onclick="testFirebaseInit()">2. Test Firebase Init</button>
+    <button onclick="testGoogleSignIn()">3. Test Google Sign-In</button>
+    <button onclick="signOut()">Sign Out</button>
+
+    <h2>Console Output:</h2>
+    <pre id="console"></pre>
+
+    <h2>Current User:</h2>
+    <div id="user-info" class="status"></div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyANDCAB8VI00JIVoRKLyXtc2FateShvn_c",
+            authDomain: "linkedscrapper.firebaseapp.com",
+            projectId: "linkedscrapper",
+            storageBucket: "linkedscrapper.firebasestorage.app",
+            messagingSenderId: "537959019488",
+            appId: "1:537959019488:web:945b43c36a4bb6c198f185",
+            measurementId: "G-HFP9095PCP"
+        };
+
+        let auth = null;
+
+        function log(message, type = 'info') {
+            const consoleEl = document.getElementById('console');
+            const timestamp = new Date().toLocaleTimeString();
+            consoleEl.textContent += `[${timestamp}] ${message}\n`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+
+            const statusEl = document.getElementById('status');
+            const statusClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'warning';
+            statusEl.innerHTML = `<div class="status ${statusClass}">${message}</div>`;
+        }
+
+        function testFirebaseLoaded() {
+            if (typeof firebase !== 'undefined') {
+                log('✅ Firebase SDK loaded successfully!', 'success');
+                console.log('Firebase version:', firebase.SDK_VERSION);
+                return true;
+            } else {
+                log('❌ Firebase SDK not loaded!', 'error');
+                return false;
+            }
+        }
+
+        function testFirebaseInit() {
+            try {
+                if (!testFirebaseLoaded()) return;
+
+                firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+
+                log('✅ Firebase initialized successfully!', 'success');
+                log(`Project ID: ${firebaseConfig.projectId}`, 'info');
+                log(`Auth Domain: ${firebaseConfig.authDomain}`, 'info');
+
+                // Set up auth state listener
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        log(`✅ User signed in: ${user.email}`, 'success');
+                        displayUserInfo(user);
+                    } else {
+                        log('ℹ️ No user signed in', 'info');
+                        document.getElementById('user-info').innerHTML = '<p>Not signed in</p>';
+                    }
+                });
+
+                return true;
+            } catch (error) {
+                log(`❌ Firebase init error: ${error.message}`, 'error');
+                console.error('Full error:', error);
+                return false;
+            }
+        }
+
+        async function testGoogleSignIn() {
+            try {
+                if (!auth) {
+                    log('⚠️ Please run "Test Firebase Init" first!', 'warning');
+                    return;
+                }
+
+                log('🔄 Starting Google Sign-In...', 'info');
+
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('profile');
+                provider.addScope('email');
+
+                log('🔄 Opening Google Sign-In popup...', 'info');
+
+                const result = await auth.signInWithPopup(provider);
+
+                log('✅ Sign-in successful!', 'success');
+                log(`User: ${result.user.email}`, 'success');
+                log(`Display Name: ${result.user.displayName}`, 'success');
+
+                displayUserInfo(result.user);
+
+            } catch (error) {
+                log(`❌ Sign-in error: ${error.code} - ${error.message}`, 'error');
+                console.error('Full error:', error);
+
+                // Provide helpful error messages
+                if (error.code === 'auth/unauthorized-domain') {
+                    log('⚠️ SOLUTION: Add "localhost" to Authorized domains in Firebase Console', 'warning');
+                    log('Go to: Authentication → Settings → Authorized domains', 'warning');
+                }
+                if (error.code === 'auth/popup-blocked') {
+                    log('⚠️ SOLUTION: Allow popups for this site', 'warning');
+                }
+                if (error.code === 'auth/popup-closed-by-user') {
+                    log('ℹ️ Popup was closed before completing sign-in', 'info');
+                }
+            }
+        }
+
+        async function signOut() {
+            if (!auth) {
+                log('⚠️ Not initialized', 'warning');
+                return;
+            }
+
+            try {
+                await auth.signOut();
+                log('✅ Signed out successfully', 'success');
+                document.getElementById('user-info').innerHTML = '<p>Not signed in</p>';
+            } catch (error) {
+                log(`❌ Sign-out error: ${error.message}`, 'error');
+            }
+        }
+
+        function displayUserInfo(user) {
+            const userInfoEl = document.getElementById('user-info');
+            userInfoEl.innerHTML = `
+                <h3>✅ Signed In</h3>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Name:</strong> ${user.displayName || 'N/A'}</p>
+                <p><strong>UID:</strong> ${user.uid}</p>
+                <p><strong>Photo:</strong> ${user.photoURL ? `<img src="${user.photoURL}" width="50" style="border-radius: 50%;">` : 'N/A'}</p>
+                <p><strong>Email Verified:</strong> ${user.emailVerified ? '✅' : '❌'}</p>
+            `;
+        }
+
+        // Auto-run first test on load
+        window.addEventListener('load', () => {
+            log('🚀 Firebase Auth Test Page Loaded', 'info');
+            log('Click the buttons above to test each step', 'info');
+        });
+    </script>
+</body>
+
+</html>

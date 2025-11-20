@@ -159,22 +159,31 @@ async def main():
                 print("\n📊 Analyzing Job Market Data...")
                 try:
                     from src.stats_generator import generate_job_stats
+                    import webbrowser
+                    import os
                     
                     # Generate the report
                     report = generate_job_stats()
                     print("\n" + report)
                     
-                    # Save the report
+                    # Save the markdown report
                     save_path = "data/job_market_report.md"
                     with open(save_path, "w") as f:
                         f.write(report)
-                    print(f"\n✅ Report saved to {save_path}")
+                    print(f"\n✅ Markdown report saved to {save_path}")
+                    
+                    # Open the HTML viewer in browser
+                    html_path = os.path.abspath("view_report.html")
+                    if os.path.exists(html_path):
+                        print(f"📱 Opening interactive report in your browser...")
+                        webbrowser.open(f'file://{html_path}')
+                        print(f"✨ You can also view the report at: {html_path}")
                     
                 except ImportError as e:
                     logger.error(f"Missing dependencies: {e}")
                     print(f"\n❌ Missing dependencies: {e}")
-                    print("Please run: pip install spacy scikit-learn pandas")
-                    print("And: python -m spacy download en_core_web_sm")
+                    print("Please run: uv add spacy scikit-learn pandas matplotlib")
+                    print("And: uv run python -m spacy download en_core_web_sm")
                 except Exception as e:
                     logger.error(f"Error generating stats: {e}")
                     print(f"\n❌ Error generating stats: {e}")
