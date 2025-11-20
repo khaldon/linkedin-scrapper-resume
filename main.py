@@ -113,7 +113,7 @@ async def main():
             # Pipeline Options
             print("\nPipeline Options:")
             print("1. Create Tailored CV (ATS Optimized)")
-            print("2. Analyze Data (Coming Soon)")
+            print("2. Analyze Data")
             print("3. Exit")
             
             choice = input("\nEnter your choice (1-3): ").strip()
@@ -154,6 +154,30 @@ async def main():
                     print(f"✨ PDF saved to: {pdf_filename}")
                 else:
                     print("⚠️ PDF conversion failed. Please check logs.")
+
+            elif choice == "2":
+                print("\n📊 Analyzing Job Market Data...")
+                try:
+                    from src.stats_generator import generate_job_stats
+                    
+                    # Generate the report
+                    report = generate_job_stats()
+                    print("\n" + report)
+                    
+                    # Save the report
+                    save_path = "data/job_market_report.md"
+                    with open(save_path, "w") as f:
+                        f.write(report)
+                    print(f"\n✅ Report saved to {save_path}")
+                    
+                except ImportError as e:
+                    logger.error(f"Missing dependencies: {e}")
+                    print(f"\n❌ Missing dependencies: {e}")
+                    print("Please run: pip install spacy scikit-learn pandas")
+                    print("And: python -m spacy download en_core_web_sm")
+                except Exception as e:
+                    logger.error(f"Error generating stats: {e}")
+                    print(f"\n❌ Error generating stats: {e}")
 
         else:
             logger.error("Failed to scrape job post")

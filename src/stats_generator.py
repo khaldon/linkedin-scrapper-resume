@@ -102,6 +102,23 @@ HARD_SKILLS = [
     "natural language processing",
 ]
 
+COMMON_IRRELEVANT_TERMS = {
+    "experience", "year", "work", "job", "team", "project", "company", "role",
+    "skill", "ability", "knowledge", "understanding", "opportunity", "business",
+    "development", "application", "system", "service", "product", "client",
+    "user", "customer", "environment", "requirement", "solution", "process",
+    "support", "design", "implementation", "management", "technology", "platform",
+    "tool", "framework", "language", "code", "software", "engineer", "developer",
+    "degree", "bachelor", "master", "computer", "science", "engineering",
+    "strong", "good", "excellent", "proficient", "familiar", "preferred", "plus",
+    "working", "using", "based", "related", "new", "best", "high", "large",
+    "looking", "seeking", "join", "help", "create", "build", "maintain",
+    "provide", "ensure", "make", "take", "part", "member", "candidate",
+    "position", "location", "salary", "benefit", "offer", "apply", "contact",
+    "email", "resume", "cv", "cover", "letter", "click", "link", "website",
+    "http", "https", "com", "www", "org", "net", "io", "co", "uk", "ca",
+}
+
 # ------------------------------------------------------------
 # 3️⃣ Normalisation helpers (lemmatisation + synonym mapping)
 # ------------------------------------------------------------
@@ -116,6 +133,10 @@ SYNONYMS = {
     "google cloud platform": "google cloud",
     "ci/cd": "ci cd",
     "ci cd": "ci/cd",
+    "datum": "data",
+    "reactjs": "react",
+    "node": "node.js",
+    "nodejs": "node.js",
 }
 
 def _normalize(text: str) -> str:
@@ -127,27 +148,43 @@ def _normalize(text: str) -> str:
     for tok in doc:
         if tok.is_stop or not tok.is_alpha:
             continue
-        lemma = SYNONYMS.get(tok.lemma_, tok.lemma_)
+        # Check text first (for acronyms like AWS which might lemmatize oddly)
+        lemma = SYNONYMS.get(tok.text.lower())
+        if not lemma:
+            lemma = SYNONYMS.get(tok.lemma_, tok.lemma_)
+            
+        if lemma in COMMON_IRRELEVANT_TERMS:
+            continue
         tokens.append(lemma)
     return " ".join(tokens)
 
 # ------------------------------------------------------------
 # 4️⃣ Vectorisers – built once and reused
 # ------------------------------------------------------------
-VOCAB = set(TECHNOLOGIES + PROGRAMMING_LANGUAGES + SOFT_SKILLS + HARD_SKILLS)
+# We must normalise the vocabulary terms so they match the processed text
+# e.g. "machine learning" -> "machine learning" (or "machine learn" depending on spacy)
+def _prepare_vocab(term_list):
+    return set(_normalize(t) for t in term_list)
+
+VOCAB_TECH = _prepare_vocab(TECHNOLOGIES)
+VOCAB_LANG = _prepare_vocab(PROGRAMMING_LANGUAGES)
+VOCAB_SOFT = _prepare_vocab(SOFT_SKILLS)
+VOCAB_HARD = _prepare_vocab(HARD_SKILLS)
+
+VOCAB = VOCAB_TECH | VOCAB_LANG | VOCAB_SOFT | VOCAB_HARD
 
 count_vectoriser = CountVectorizer(
     lowercase=True,
     token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*",
     ngram_range=(1, 3),
-    vocabulary=VOCAB,
+    # vocabulary=VOCAB,  <-- Removed to allow discovery of new terms
 )
 
 tfidf_vectoriser = TfidfVectorizer(
     lowercase=True,
     token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*",
     ngram_range=(1, 3),
-    vocabulary=VOCAB,
+    # vocabulary=VOCAB,  <-- Removed to allow discovery of new terms
 )
 
 # ------------------------------------------------------------
@@ -194,10 +231,17 @@ def generate_job_stats(
     def _filter(counter: Counter, vocab: list[str]) -> Counter:
         return Counter({k: v for k, v in counter.items() if k in vocab})
 
-    tech_counter = _filter(weighted, TECHNOLOGIES)
-    lang_counter = _filter(weighted, PROGRAMMING_LANGUAGES)
-    soft_counter = _filter(weighted, SOFT_SKILLS)
-    hard_counter = _filter(weighted, HARD_SKILLS)
+    def _filter_exclude(counter: Counter, vocab: set[str]) -> Counter:
+        return Counter({k: v for k, v in counter.items() if k not in vocab})
+
+    tech_counter = _filter(weighted, VOCAB_TECH)
+    lang_counter = _filter(weighted, VOCAB_LANG)
+    soft_counter = _filter(weighted, VOCAB_SOFT)
+    hard_counter = _filter(weighted, VOCAB_HARD)
+    
+    # Find terms that are NOT in our known lists but have high scores
+    # This helps discover new technologies or skills we missed
+    uncategorized_counter = _filter_exclude(weighted, VOCAB)
 
     # ---- Load O*NET enrichment (if supplied) ---------------------------------
     onet_map: dict[str, str] = {}
@@ -220,6 +264,7 @@ def generate_job_stats(
     report.extend(_section("Most Requested Programming Languages", lang_counter))
     report.extend(_section("Top Soft Skills Mentioned", soft_counter))
     report.extend(_section("Top Hard Skills Mentioned", hard_counter))
+    report.extend(_section("Top Uncategorized Terms (Potential New Skills)", uncategorized_counter))
     report.append("_Statistics are derived solely from the `full_description` column of the local SQLite database._")
     return "\n".join(report)
 
