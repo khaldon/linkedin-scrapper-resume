@@ -57,11 +57,11 @@ RUN useradd -m -u 1000 appuser && \
 # Switch to non-root user
 USER appuser
 
-# Expose port
-EXPOSE 8080
+# Expose port 7860 (Hugging Face default)
+EXPOSE 7860
 
 # Set environment variables
-ENV PORT=8080
+ENV PORT=7860
 ENV PYTHONUNBUFFERED=1
 ENV DATABASE_PATH=/app/data/jobs.db
 

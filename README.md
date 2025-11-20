@@ -1,3 +1,13 @@
+---
+title: Linkedin Scraper Resume
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+app_port: 7860
+---
+
 # LinkedIn Scraper Resume 🚀
 
 > A powerful pipeline that scrapes LinkedIn job postings and generates AI‑tailored, ATS‑optimized resumes using Google Gemini
