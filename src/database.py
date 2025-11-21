@@ -2,25 +2,42 @@ import sqlite3
 import os
 import logging
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 try:
-    import psycopg2
+    from supabase import create_client, Client
 
-    HAS_POSTGRES = True
+    HAS_SUPABASE = True
 except ImportError:
-    HAS_POSTGRES = False
+    HAS_SUPABASE = False
+    logger.warning(
+        "⚠️  Supabase package not installed. Install with: pip install supabase"
+    )
+
+
+def _serialize_datetime(data):
+    """Convert datetime objects to ISO format strings for JSON serialization"""
+    if isinstance(data, dict):
+        return {k: _serialize_datetime(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_serialize_datetime(item) for item in data]
+    elif isinstance(data, datetime):
+        return data.isoformat()
+    return data
 
 
 class Database:
     def __init__(self, db_path: Optional[str] = None):
-        # Check for Supabase/Postgres configuration
-        self.db_url = os.getenv("SUPABASE_DATABASE_URL") or os.getenv("DATABASE_URL")
-        self.use_postgres = bool(self.db_url and HAS_POSTGRES)
+        # Check for Supabase configuration
+        self.supabase_url = os.getenv("SUPABASE_URL")
+        self.supabase_key = os.getenv("SUPABASE_KEY")
+        self.use_supabase = bool(
+            self.supabase_url and self.supabase_key and HAS_SUPABASE
+        )
 
         # Set SQLite path as fallback
         if db_path is None:
@@ -28,87 +45,62 @@ class Database:
         else:
             self.db_path = db_path
 
-        if self.use_postgres:
-            logger.info("🚀 Attempting to use Supabase/PostgreSQL Database")
-            # Try to connect to PostgreSQL, fall back to SQLite if it fails
+        if self.use_supabase:
+            logger.info("🚀 Attempting to use Supabase Database")
             try:
-                self._init_db()
-                logger.info("✅ Successfully connected to PostgreSQL")
+                self.supabase: Client = create_client(
+                    self.supabase_url, self.supabase_key
+                )
+                # Test connection by checking if we can access the database
+                self._verify_supabase_connection()
+                logger.info("✅ Successfully connected to Supabase")
             except Exception as e:
-                logger.error(f"❌ PostgreSQL connection failed: {e}")
+                logger.error(f"❌ Supabase connection failed: {e}")
                 logger.warning(f"⚠️  Falling back to SQLite: {self.db_path}")
-                self.use_postgres = False
-                self._init_db()
+                self.use_supabase = False
+                self._init_sqlite()
         else:
             logger.info(f"📂 Using Local SQLite: {self.db_path}")
-            self._init_db()
+            self._init_sqlite()
 
-    def _get_connection(self):
-        """Get a database connection (Local SQLite or Remote Postgres)"""
-        if self.use_postgres:
-            try:
-                # Add connection timeout to prevent hanging
-                return psycopg2.connect(
-                    self.db_url,
-                    connect_timeout=10,  # 10 second timeout
-                    options="-c statement_timeout=30000",  # 30 second query timeout
-                )
-            except Exception as e:
-                logger.error(f"❌ Postgres connection failed: {e}")
-                raise
-        else:
-            return sqlite3.connect(self.db_path)
-
-    def _close_connection(self, conn):
-        """Safely close database connection"""
+    def _verify_supabase_connection(self):
+        """Verify Supabase connection by attempting to query"""
         try:
-            if hasattr(conn, "close"):
-                conn.close()
+            # Try to query jobs table (will create if doesn't exist via Supabase dashboard)
+            self.supabase.table("jobs").select("id").limit(1).execute()
         except Exception:
+            # If table doesn't exist, that's okay - we'll create it via SQL
+            logger.info("Tables may need to be created in Supabase dashboard")
             pass
 
-    def _execute(self, cursor, query: str, params: tuple = ()):
-        """Execute query with parameter substitution based on DB type"""
-        if self.use_postgres:
-            # Convert ? to %s for Postgres
-            query = query.replace("?", "%s")
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query, params)
-
-    def _init_db(self):
-        conn = self._get_connection()
+    def _init_sqlite(self):
+        """Initialize SQLite database"""
+        os.makedirs(
+            os.path.dirname(self.db_path) if os.path.dirname(self.db_path) else ".",
+            exist_ok=True,
+        )
+        conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.cursor()
 
-            # Define types for different DBs
-            if self.use_postgres:
-                id_type = "SERIAL PRIMARY KEY"
-                timestamp_default = "DEFAULT CURRENT_TIMESTAMP"
-                bool_type = "BOOLEAN"
-            else:
-                id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
-                timestamp_default = "DEFAULT CURRENT_TIMESTAMP"
-                bool_type = "BOOLEAN"  # SQLite accepts BOOLEAN (as integer)
-
             # Create users table
             cursor.execute(
-                f"""
+                """
                 CREATE TABLE IF NOT EXISTS users (
-                    id {id_type},
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     email TEXT UNIQUE NOT NULL,
                     hashed_password TEXT NOT NULL,
-                    is_active {bool_type} DEFAULT TRUE,
-                    created_at TIMESTAMP {timestamp_default}
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """
             )
 
             # Create jobs table
             cursor.execute(
-                f"""
+                """
                 CREATE TABLE IF NOT EXISTS jobs (
-                    id {id_type},
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER,
                     url TEXT UNIQUE,
                     title TEXT,
@@ -124,9 +116,9 @@ class Database:
 
             # Create cv_generations table
             cursor.execute(
-                f"""
+                """
                 CREATE TABLE IF NOT EXISTS cv_generations (
-                    id {id_type},
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     job_id INTEGER,
                     original_cv_content TEXT,
                     tailored_cv_content TEXT,
@@ -138,12 +130,12 @@ class Database:
 
             # Create linkedin_credentials table
             cursor.execute(
-                f"""
+                """
                 CREATE TABLE IF NOT EXISTS linkedin_credentials (
-                    id {id_type},
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_id INTEGER UNIQUE,
                     encrypted_credentials TEXT NOT NULL,
-                    updated_at TIMESTAMP {timestamp_default},
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users (id)
                 )
             """
@@ -151,45 +143,42 @@ class Database:
 
             conn.commit()
         finally:
-            self._close_connection(conn)
+            conn.close()
 
     def save_job(self, job_data: Dict) -> int:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
+        """Save job to database"""
+        if self.use_supabase:
+            try:
+                # Prepare data for Supabase
+                data = {
+                    "url": job_data["url"],
+                    "title": job_data["title"],
+                    "company": job_data["company"],
+                    "poster": job_data.get("poster"),
+                    "description": job_data.get("description"),
+                    "full_description": job_data.get("full_description"),
+                    "scraped_at": datetime.now().isoformat(),
+                }
 
-            if self.use_postgres:
-                # Postgres UPSERT
-                query = """
-                    INSERT INTO jobs (
-                        url, title, company, poster, description, full_description, scraped_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (url) DO UPDATE SET
-                        title = EXCLUDED.title,
-                        company = EXCLUDED.company,
-                        poster = EXCLUDED.poster,
-                        description = EXCLUDED.description,
-                        full_description = EXCLUDED.full_description,
-                        scraped_at = EXCLUDED.scraped_at
-                    RETURNING id
-                """
-                cursor.execute(
-                    query,
-                    (
-                        job_data["url"],
-                        job_data["title"],
-                        job_data["company"],
-                        job_data["poster"],
-                        job_data["description"],
-                        job_data["full_description"],
-                        datetime.now().isoformat(),
-                    ),
+                # Upsert (insert or update)
+                result = (
+                    self.supabase.table("jobs")
+                    .upsert(data, on_conflict="url")
+                    .execute()
                 )
-                job_id = cursor.fetchone()[0]
-            else:
-                # SQLite UPSERT (INSERT OR REPLACE)
-                self._execute(
-                    cursor,
+
+                if result.data and len(result.data) > 0:
+                    return result.data[0]["id"]
+                return None
+            except Exception as e:
+                logger.error(f"Error saving job to Supabase: {e}")
+                raise
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
                     """
                     INSERT OR REPLACE INTO jobs (
                         url, title, company, poster, description, full_description, scraped_at
@@ -199,9 +188,9 @@ class Database:
                         job_data["url"],
                         job_data["title"],
                         job_data["company"],
-                        job_data["poster"],
-                        job_data["description"],
-                        job_data["full_description"],
+                        job_data.get("poster"),
+                        job_data.get("description"),
+                        job_data.get("full_description"),
                         datetime.now().isoformat(),
                     ),
                 )
@@ -215,123 +204,206 @@ class Database:
                     result = cursor.fetchone()
                     job_id = result[0] if result else None
 
-            conn.commit()
-            return job_id
-        finally:
-            self._close_connection(conn)
+                conn.commit()
+                return job_id
+            finally:
+                conn.close()
 
     def check_job_exists(self, url: str) -> Optional[Dict]:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor,
-                "SELECT id, title, company, scraped_at FROM jobs WHERE url = ?",
-                (url,),
-            )
-            row = cursor.fetchone()
+        """Check if job exists by URL"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("jobs")
+                    .select("id, title, company, scraped_at")
+                    .eq("url", url)
+                    .execute()
+                )
 
-            if row:
-                # Handle tuple vs RealDictRow if we used RealDictCursor (but we didn't here for consistency)
-                return {
-                    "id": row[0],
-                    "title": row[1],
-                    "company": row[2],
-                    "scraped_at": str(row[3]),  # Ensure string for timestamp
-                }
-            return None
-        finally:
-            self._close_connection(conn)
+                if result.data and len(result.data) > 0:
+                    return _serialize_datetime(result.data[0])
+                return None
+            except Exception as e:
+                logger.error(f"Error checking job in Supabase: {e}")
+                return None
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT id, title, company, scraped_at FROM jobs WHERE url = ?",
+                    (url,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    return {
+                        "id": row[0],
+                        "title": row[1],
+                        "company": row[2],
+                        "scraped_at": str(row[3]),
+                    }
+                return None
+            finally:
+                conn.close()
 
     def get_job(self, job_id: int) -> Optional[Dict]:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(cursor, "SELECT * FROM jobs WHERE id = ?", (job_id,))
-            row = cursor.fetchone()
+        """Get job by ID"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("jobs").select("*").eq("id", job_id).execute()
+                )
 
-            if row:
-                col_names = [desc[0] for desc in cursor.description]
-                return dict(zip(col_names, row))
-            return None
-        finally:
-            self._close_connection(conn)
+                if result.data and len(result.data) > 0:
+                    return _serialize_datetime(result.data[0])
+                return None
+            except Exception as e:
+                logger.error(f"Error getting job from Supabase: {e}")
+                return None
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))
+                row = cursor.fetchone()
+
+                if row:
+                    col_names = [desc[0] for desc in cursor.description]
+                    return dict(zip(col_names, row))
+                return None
+            finally:
+                conn.close()
 
     def save_generated_cv(self, job_id: int, original_cv: str, tailored_cv: str):
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor,
-                """
-                INSERT INTO cv_generations (
-                    job_id, original_cv_content, tailored_cv_content, generated_at
-                ) VALUES (?, ?, ?, ?)
-            """,
-                (job_id, original_cv, tailored_cv, datetime.now().isoformat()),
-            )
-            conn.commit()
-        finally:
-            self._close_connection(conn)
+        """Save generated CV"""
+        if self.use_supabase:
+            try:
+                data = {
+                    "job_id": job_id,
+                    "original_cv_content": original_cv,
+                    "tailored_cv_content": tailored_cv,
+                    "generated_at": datetime.now().isoformat(),
+                }
 
-    def get_all_jobs(self, limit: int = 10, offset: int = 0):
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor,
-                """
-                SELECT id, url, title, company, poster, scraped_at
-                FROM jobs
-                ORDER BY scraped_at DESC
-                LIMIT ? OFFSET ?
-            """,
-                (limit, offset),
-            )
+                self.supabase.table("cv_generations").insert(data).execute()
+            except Exception as e:
+                logger.error(f"Error saving CV to Supabase: {e}")
+                raise
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO cv_generations (
+                        job_id, original_cv_content, tailored_cv_content, generated_at
+                    ) VALUES (?, ?, ?, ?)
+                """,
+                    (job_id, original_cv, tailored_cv, datetime.now().isoformat()),
+                )
+                conn.commit()
+            finally:
+                conn.close()
 
-            rows = cursor.fetchall()
+    def get_all_jobs(self, limit: int = 10, offset: int = 0) -> List[Dict]:
+        """Get all jobs with pagination"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("jobs")
+                    .select("id, url, title, company, poster, scraped_at")
+                    .order("scraped_at", desc=True)
+                    .range(offset, offset + limit - 1)
+                    .execute()
+                )
 
-            if cursor.description:
-                col_names = [desc[0] for desc in cursor.description]
-                return [dict(zip(col_names, row)) for row in rows]
-            return []
-        finally:
-            self._close_connection(conn)
+                # Serialize datetime objects to strings
+                return _serialize_datetime(result.data) if result.data else []
+            except Exception as e:
+                logger.error(f"Error getting jobs from Supabase: {e}")
+                return []
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT id, url, title, company, poster, scraped_at
+                    FROM jobs
+                    ORDER BY scraped_at DESC
+                    LIMIT ? OFFSET ?
+                """,
+                    (limit, offset),
+                )
+
+                rows = cursor.fetchall()
+
+                if cursor.description:
+                    col_names = [desc[0] for desc in cursor.description]
+                    return [dict(zip(col_names, row)) for row in rows]
+                return []
+            finally:
+                conn.close()
 
     def delete_job(self, job_id: int) -> bool:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor, "DELETE FROM cv_generations WHERE job_id = ?", (job_id,)
-            )
-            self._execute(cursor, "DELETE FROM jobs WHERE id = ?", (job_id,))
+        """Delete job and associated CVs"""
+        if self.use_supabase:
+            try:
+                # Delete CV generations first
+                self.supabase.table("cv_generations").delete().eq(
+                    "job_id", job_id
+                ).execute()
 
-            deleted = cursor.rowcount > 0
-            conn.commit()
-            return deleted
-        finally:
-            self._close_connection(conn)
+                # Delete job
+                result = self.supabase.table("jobs").delete().eq("id", job_id).execute()
+
+                return result.data is not None
+            except Exception as e:
+                logger.error(f"Error deleting job from Supabase: {e}")
+                return False
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM cv_generations WHERE job_id = ?", (job_id,))
+                cursor.execute("DELETE FROM jobs WHERE id = ?", (job_id,))
+
+                deleted = cursor.rowcount > 0
+                conn.commit()
+                return deleted
+            finally:
+                conn.close()
 
     # User management methods
     def create_user(self, email: str, hashed_password: str) -> int:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
+        """Create a new user"""
+        if self.use_supabase:
+            try:
+                data = {
+                    "email": email,
+                    "hashed_password": hashed_password,
+                }
 
-            if self.use_postgres:
+                result = self.supabase.table("users").insert(data).execute()
+
+                if result.data and len(result.data) > 0:
+                    return result.data[0]["id"]
+                return None
+            except Exception as e:
+                logger.error(f"Error creating user in Supabase: {e}")
+                raise
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
                 cursor.execute(
-                    """
-                    INSERT INTO users (email, hashed_password)
-                    VALUES (%s, %s)
-                    RETURNING id
-                """,
-                    (email, hashed_password),
-                )
-                user_id = cursor.fetchone()[0]
-            else:
-                self._execute(
-                    cursor,
                     """
                     INSERT INTO users (email, hashed_password)
                     VALUES (?, ?)
@@ -339,97 +411,166 @@ class Database:
                     (email, hashed_password),
                 )
                 user_id = cursor.lastrowid
-
-            conn.commit()
-            return user_id
-        finally:
-            self._close_connection(conn)
+                conn.commit()
+                return user_id
+            finally:
+                conn.close()
 
     def get_user_by_email(self, email: str) -> Optional[Dict]:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(cursor, "SELECT * FROM users WHERE email = ?", (email,))
-            row = cursor.fetchone()
+        """Get user by email"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("users")
+                    .select("*")
+                    .eq("email", email)
+                    .execute()
+                )
 
-            if row:
-                col_names = [desc[0] for desc in cursor.description]
-                return dict(zip(col_names, row))
-            return None
-        finally:
-            self._close_connection(conn)
+                if result.data and len(result.data) > 0:
+                    return _serialize_datetime(result.data[0])
+                return None
+            except Exception as e:
+                logger.error(f"Error getting user from Supabase: {e}")
+                return None
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
+                row = cursor.fetchone()
+
+                if row:
+                    col_names = [desc[0] for desc in cursor.description]
+                    return dict(zip(col_names, row))
+                return None
+            finally:
+                conn.close()
 
     def get_user_by_id(self, user_id: int) -> Optional[Dict]:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(cursor, "SELECT * FROM users WHERE id = ?", (user_id,))
-            row = cursor.fetchone()
+        """Get user by ID"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("users").select("*").eq("id", user_id).execute()
+                )
 
-            if row:
-                col_names = [desc[0] for desc in cursor.description]
-                return dict(zip(col_names, row))
-            return None
-        finally:
-            self._close_connection(conn)
+                if result.data and len(result.data) > 0:
+                    return _serialize_datetime(result.data[0])
+                return None
+            except Exception as e:
+                logger.error(f"Error getting user from Supabase: {e}")
+                return None
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+                row = cursor.fetchone()
+
+                if row:
+                    col_names = [desc[0] for desc in cursor.description]
+                    return dict(zip(col_names, row))
+                return None
+            finally:
+                conn.close()
 
     # LinkedIn credentials management
     def store_linkedin_credentials(self, user_id: int, encrypted_credentials: str):
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
+        """Store encrypted LinkedIn credentials"""
+        if self.use_supabase:
+            try:
+                data = {
+                    "user_id": user_id,
+                    "encrypted_credentials": encrypted_credentials,
+                    "updated_at": datetime.now().isoformat(),
+                }
 
-            if self.use_postgres:
-                query = """
-                    INSERT INTO linkedin_credentials (user_id, encrypted_credentials, updated_at)
-                    VALUES (%s, %s, CURRENT_TIMESTAMP)
-                    ON CONFLICT (user_id) DO UPDATE SET
-                        encrypted_credentials = EXCLUDED.encrypted_credentials,
-                        updated_at = CURRENT_TIMESTAMP
-                """
-                cursor.execute(query, (user_id, encrypted_credentials))
-            else:
-                self._execute(
-                    cursor,
+                self.supabase.table("linkedin_credentials").upsert(
+                    data, on_conflict="user_id"
+                ).execute()
+            except Exception as e:
+                logger.error(f"Error storing credentials in Supabase: {e}")
+                raise
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
                     """
                     INSERT OR REPLACE INTO linkedin_credentials (user_id, encrypted_credentials, updated_at)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                 """,
                     (user_id, encrypted_credentials),
                 )
-
-            conn.commit()
-        finally:
-            self._close_connection(conn)
+                conn.commit()
+            finally:
+                conn.close()
 
     def get_linkedin_credentials(self, user_id: int) -> Optional[str]:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor,
-                """
-                SELECT encrypted_credentials FROM linkedin_credentials WHERE user_id = ?
-            """,
-                (user_id,),
-            )
+        """Get encrypted LinkedIn credentials"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("linkedin_credentials")
+                    .select("encrypted_credentials")
+                    .eq("user_id", user_id)
+                    .execute()
+                )
 
-            row = cursor.fetchone()
-            if row:
-                return row[0]
-            return None
-        finally:
-            self._close_connection(conn)
+                if result.data and len(result.data) > 0:
+                    return result.data[0]["encrypted_credentials"]
+                return None
+            except Exception as e:
+                logger.error(f"Error getting credentials from Supabase: {e}")
+                return None
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT encrypted_credentials FROM linkedin_credentials WHERE user_id = ?
+                """,
+                    (user_id,),
+                )
+
+                row = cursor.fetchone()
+                if row:
+                    return row[0]
+                return None
+            finally:
+                conn.close()
 
     def delete_linkedin_credentials(self, user_id: int) -> bool:
-        conn = self._get_connection()
-        try:
-            cursor = conn.cursor()
-            self._execute(
-                cursor, "DELETE FROM linkedin_credentials WHERE user_id = ?", (user_id,)
-            )
-            deleted = cursor.rowcount > 0
-            conn.commit()
-            return deleted
-        finally:
-            self._close_connection(conn)
+        """Delete LinkedIn credentials"""
+        if self.use_supabase:
+            try:
+                result = (
+                    self.supabase.table("linkedin_credentials")
+                    .delete()
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+
+                return result.data is not None
+            except Exception as e:
+                logger.error(f"Error deleting credentials from Supabase: {e}")
+                return False
+        else:
+            # SQLite implementation
+            conn = sqlite3.connect(self.db_path)
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "DELETE FROM linkedin_credentials WHERE user_id = ?", (user_id,)
+                )
+                deleted = cursor.rowcount > 0
+                conn.commit()
+                return deleted
+            finally:
+                conn.close()

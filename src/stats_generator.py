@@ -1,4 +1,3 @@
-import sqlite3
 from collections import Counter
 from pathlib import Path
 import json
@@ -11,54 +10,202 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for server environments
+
+matplotlib.use("Agg")  # Non-interactive backend for server environments
 
 # ------------------------------------------------------------
 # 2️⃣ Skill vocabularies
 # ------------------------------------------------------------
 TECHNOLOGIES = [
-    "docker", "kubernetes", "aws", "azure", "gcp", "google cloud",
-    "tensorflow", "pytorch", "scikit‑learn", "huggingface", "transformers",
-    "fastapi", "flask", "django", "react", "vue", "angular", "node.js",
-    "typescript", "javascript", "html", "css", "sql", "postgresql",
-    "mysql", "mongodb", "redis", "celery", "airflow", "git", "github",
-    "gitlab", "ci/cd", "jenkins", "circleci", "travis", "terraform",
-    "ansible", "linux", "windows", "macos", "bash", "powershell",
+    "docker",
+    "kubernetes",
+    "aws",
+    "azure",
+    "gcp",
+    "google cloud",
+    "tensorflow",
+    "pytorch",
+    "scikit‑learn",
+    "huggingface",
+    "transformers",
+    "fastapi",
+    "flask",
+    "django",
+    "react",
+    "vue",
+    "angular",
+    "node.js",
+    "typescript",
+    "javascript",
+    "html",
+    "css",
+    "sql",
+    "postgresql",
+    "mysql",
+    "mongodb",
+    "redis",
+    "celery",
+    "airflow",
+    "git",
+    "github",
+    "gitlab",
+    "ci/cd",
+    "jenkins",
+    "circleci",
+    "travis",
+    "terraform",
+    "ansible",
+    "linux",
+    "windows",
+    "macos",
+    "bash",
+    "powershell",
 ]
 
 PROGRAMMING_LANGUAGES = [
-    "python", "javascript", "java", "c++", "c#", "go", "rust",
-    "typescript", "ruby", "php", "sql", "scala", "kotlin",
+    "python",
+    "javascript",
+    "java",
+    "c++",
+    "c#",
+    "go",
+    "rust",
+    "typescript",
+    "ruby",
+    "php",
+    "sql",
+    "scala",
+    "kotlin",
 ]
 
 SOFT_SKILLS = [
-    "communication", "teamwork", "leadership", "problem solving",
-    "critical thinking", "adaptability", "time management",
-    "collaboration", "creativity", "attention to detail",
+    "communication",
+    "teamwork",
+    "leadership",
+    "problem solving",
+    "critical thinking",
+    "adaptability",
+    "time management",
+    "collaboration",
+    "creativity",
+    "attention to detail",
 ]
 
 HARD_SKILLS = [
-    "machine learning", "data analysis", "software development",
-    "project management", "cloud computing", "devops", "testing",
-    "debugging", "algorithm design", "data engineering", "nlp",
+    "machine learning",
+    "data analysis",
+    "software development",
+    "project management",
+    "cloud computing",
+    "devops",
+    "testing",
+    "debugging",
+    "algorithm design",
+    "data engineering",
+    "nlp",
     "natural language processing",
 ]
 
 COMMON_IRRELEVANT_TERMS = {
-    "experience", "year", "work", "job", "team", "project", "company", "role",
-    "skill", "ability", "knowledge", "understanding", "opportunity", "business",
-    "development", "application", "system", "service", "product", "client",
-    "user", "customer", "environment", "requirement", "solution", "process",
-    "support", "design", "implementation", "management", "technology", "platform",
-    "tool", "framework", "language", "code", "software", "engineer", "developer",
-    "degree", "bachelor", "master", "computer", "science", "engineering",
-    "strong", "good", "excellent", "proficient", "familiar", "preferred", "plus",
-    "working", "using", "based", "related", "new", "best", "high", "large",
-    "looking", "seeking", "join", "help", "create", "build", "maintain",
-    "provide", "ensure", "make", "take", "part", "member", "candidate",
-    "position", "location", "salary", "benefit", "offer", "apply", "contact",
-    "email", "resume", "cv", "cover", "letter", "click", "link", "website",
-    "http", "https", "com", "www", "org", "net", "io", "co", "uk", "ca",
+    "experience",
+    "year",
+    "work",
+    "job",
+    "team",
+    "project",
+    "company",
+    "role",
+    "skill",
+    "ability",
+    "knowledge",
+    "understanding",
+    "opportunity",
+    "business",
+    "development",
+    "application",
+    "system",
+    "service",
+    "product",
+    "client",
+    "user",
+    "customer",
+    "environment",
+    "requirement",
+    "solution",
+    "process",
+    "support",
+    "design",
+    "implementation",
+    "management",
+    "technology",
+    "platform",
+    "tool",
+    "framework",
+    "language",
+    "code",
+    "software",
+    "engineer",
+    "developer",
+    "degree",
+    "bachelor",
+    "master",
+    "computer",
+    "science",
+    "engineering",
+    "strong",
+    "good",
+    "excellent",
+    "proficient",
+    "familiar",
+    "preferred",
+    "plus",
+    "working",
+    "using",
+    "based",
+    "related",
+    "new",
+    "best",
+    "high",
+    "large",
+    "looking",
+    "seeking",
+    "join",
+    "help",
+    "create",
+    "build",
+    "maintain",
+    "provide",
+    "ensure",
+    "make",
+    "take",
+    "part",
+    "member",
+    "candidate",
+    "position",
+    "location",
+    "salary",
+    "benefit",
+    "offer",
+    "apply",
+    "contact",
+    "email",
+    "resume",
+    "cv",
+    "cover",
+    "letter",
+    "click",
+    "link",
+    "website",
+    "http",
+    "https",
+    "com",
+    "www",
+    "org",
+    "net",
+    "io",
+    "co",
+    "uk",
+    "ca",
 }
 
 # ------------------------------------------------------------
@@ -67,11 +214,19 @@ COMMON_IRRELEVANT_TERMS = {
 nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
 
 SYNONYMS = {
-    "aws": "amazon web services", "amazon web services": "aws",
-    "gcp": "google cloud platform", "google cloud": "google cloud platform",
-    "google cloud platform": "google cloud", "ci/cd": "ci cd", "ci cd": "ci/cd",
-    "datum": "data", "reactjs": "react", "node": "node.js", "nodejs": "node.js",
+    "aws": "amazon web services",
+    "amazon web services": "aws",
+    "gcp": "google cloud platform",
+    "google cloud": "google cloud platform",
+    "google cloud platform": "google cloud",
+    "ci/cd": "ci cd",
+    "ci cd": "ci/cd",
+    "datum": "data",
+    "reactjs": "react",
+    "node": "node.js",
+    "nodejs": "node.js",
 }
+
 
 def _normalize(text: str) -> str:
     """Lower‑case, lemmatise, drop stop‑words and apply synonym map."""
@@ -88,11 +243,13 @@ def _normalize(text: str) -> str:
         tokens.append(lemma)
     return " ".join(tokens)
 
+
 # ------------------------------------------------------------
 # 4️⃣ Vectorisers
 # ------------------------------------------------------------
 def _prepare_vocab(term_list):
     return set(_normalize(t) for t in term_list)
+
 
 VOCAB_TECH = _prepare_vocab(TECHNOLOGIES)
 VOCAB_LANG = _prepare_vocab(PROGRAMMING_LANGUAGES)
@@ -101,12 +258,17 @@ VOCAB_HARD = _prepare_vocab(HARD_SKILLS)
 VOCAB = VOCAB_TECH | VOCAB_LANG | VOCAB_SOFT | VOCAB_HARD
 
 count_vectoriser = CountVectorizer(
-    lowercase=True, token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*", ngram_range=(1, 3),
+    lowercase=True,
+    token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*",
+    ngram_range=(1, 3),
 )
 
 tfidf_vectoriser = TfidfVectorizer(
-    lowercase=True, token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*", ngram_range=(1, 3),
+    lowercase=True,
+    token_pattern=r"[a-zA-Z][a-zA-Z0-9\+\-\.]*",
+    ngram_range=(1, 3),
 )
+
 
 # ------------------------------------------------------------
 # 5️⃣ Visualization helpers
@@ -115,26 +277,33 @@ def create_bar_chart(data: dict, title: str, filename: str, color_palette: list)
     """Create a colorful horizontal bar chart."""
     if not data:
         return
-    
+
     items = list(data.keys())[:10]  # Top 10
     values = list(data.values())[:10]
-    
+
     fig, ax = plt.subplots(figsize=(12, 6))
-    bars = ax.barh(items, values, color=color_palette[:len(items)])
-    
-    ax.set_xlabel('Relevance Score', fontsize=12, fontweight='bold')
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+    bars = ax.barh(items, values, color=color_palette[: len(items)])
+
+    ax.set_xlabel("Relevance Score", fontsize=12, fontweight="bold")
+    ax.set_title(title, fontsize=14, fontweight="bold", pad=20)
     ax.invert_yaxis()
-    
+
     # Add value labels on bars
     for i, (bar, val) in enumerate(zip(bars, values)):
         width = bar.get_width()
-        ax.text(width, bar.get_y() + bar.get_height()/2, 
-                f' {val:.2f}', ha='left', va='center', fontweight='bold')
-    
+        ax.text(
+            width,
+            bar.get_y() + bar.get_height() / 2,
+            f" {val:.2f}",
+            ha="left",
+            va="center",
+            fontweight="bold",
+        )
+
     plt.tight_layout()
-    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
     plt.close()
+
 
 # ------------------------------------------------------------
 # 6️⃣ Main statistics function
@@ -147,29 +316,64 @@ def generate_job_stats(
     output_dir: str = "data",
 ) -> str:
     """Generate a user-friendly markdown report with visualizations."""
-    
-    # ---- Load job descriptions ------------------------------------------------
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT full_description FROM jobs")
-    rows = cur.fetchall()
+
+    # ---- Load job descriptions using Database class ---------------------------
+    from src.database import Database
+
+    db = Database(db_path=db_path)
+
+    # Get all jobs (no limit to get all for stats)
+    all_jobs = db.get_all_jobs(limit=1000, offset=0)  # Adjust limit as needed
+
+    # Keep fetching until we have all jobs
+    offset = 1000
+    while True:
+        more_jobs = db.get_all_jobs(limit=1000, offset=offset)
+        if not more_jobs:
+            break
+        all_jobs.extend(more_jobs)
+        offset += 1000
+
+    # Extract descriptions
+    rows = [(job.get("full_description", ""),) for job in all_jobs]
     total_jobs = len(rows)
-    conn.close()
+
+    # Check if we have any jobs
+    if total_jobs == 0:
+        return "# 📊 Job Market Analysis Report\\n\\n**No jobs found in database.**\\n\\nPlease scrape some job postings first before generating statistics."
 
     normalised = [_normalize(desc or "") for (desc,) in rows]
 
+    # Check if we have any meaningful content after normalization
+    if not any(normalised) or all(len(n.strip()) == 0 for n in normalised):
+        return "# 📊 Job Market Analysis Report\\n\\n**No job descriptions found.**\\n\\nThe jobs in the database don't have descriptions to analyze."
+
     # ---- Phrase counting ------------------------------------------------------
     X_cnt = count_vectoriser.fit_transform(normalised)
-    raw_counts = Counter({term: int(cnt) for term, cnt in 
-                          zip(count_vectoriser.get_feature_names_out(), X_cnt.sum(axis=0).A1)})
+    raw_counts = Counter(
+        {
+            term: int(cnt)
+            for term, cnt in zip(
+                count_vectoriser.get_feature_names_out(), X_cnt.sum(axis=0).A1
+            )
+        }
+    )
 
     # ---- TF‑IDF weighting --------------------------------------------
     if use_tfidf:
         X_tfidf = tfidf_vectoriser.fit_transform(normalised)
-        tfidf_scores = {term: float(score) for term, score in 
-                       zip(tfidf_vectoriser.get_feature_names_out(), X_tfidf.mean(axis=0).A1)}
-        weighted = Counter({term: raw_counts[term] * tfidf_scores.get(term, 1.0) 
-                           for term in raw_counts})
+        tfidf_scores = {
+            term: float(score)
+            for term, score in zip(
+                tfidf_vectoriser.get_feature_names_out(), X_tfidf.mean(axis=0).A1
+            )
+        }
+        weighted = Counter(
+            {
+                term: raw_counts[term] * tfidf_scores.get(term, 1.0)
+                for term in raw_counts
+            }
+        )
     else:
         weighted = raw_counts
 
@@ -189,75 +393,168 @@ def generate_job_stats(
     # ---- Create visualizations ------------------------------------------------
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
-    
+
     # Color palettes for different categories
-    tech_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', 
-                   '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788']
-    lang_colors = ['#6C5CE7', '#A29BFE', '#74B9FF', '#0984E3', '#00B894',
-                   '#00CEC9', '#FDCB6E', '#E17055', '#D63031', '#FD79A8']
-    soft_colors = ['#FF7675', '#FD79A8', '#FDCB6E', '#FFEAA7', '#55EFC4',
-                   '#81ECEC', '#74B9FF', '#A29BFE', '#DFE6E9', '#B2BEC3']
-    hard_colors = ['#00B894', '#00CEC9', '#0984E3', '#6C5CE7', '#A29BFE',
-                   '#FD79A8', '#FF7675', '#E17055', '#FDCB6E', '#55EFC4']
-    
+    tech_colors = [
+        "#FF6B6B",
+        "#4ECDC4",
+        "#45B7D1",
+        "#FFA07A",
+        "#98D8C8",
+        "#F7DC6F",
+        "#BB8FCE",
+        "#85C1E2",
+        "#F8B739",
+        "#52B788",
+    ]
+    lang_colors = [
+        "#6C5CE7",
+        "#A29BFE",
+        "#74B9FF",
+        "#0984E3",
+        "#00B894",
+        "#00CEC9",
+        "#FDCB6E",
+        "#E17055",
+        "#D63031",
+        "#FD79A8",
+    ]
+    soft_colors = [
+        "#FF7675",
+        "#FD79A8",
+        "#FDCB6E",
+        "#FFEAA7",
+        "#55EFC4",
+        "#81ECEC",
+        "#74B9FF",
+        "#A29BFE",
+        "#DFE6E9",
+        "#B2BEC3",
+    ]
+    hard_colors = [
+        "#00B894",
+        "#00CEC9",
+        "#0984E3",
+        "#6C5CE7",
+        "#A29BFE",
+        "#FD79A8",
+        "#FF7675",
+        "#E17055",
+        "#FDCB6E",
+        "#55EFC4",
+    ]
+
     if tech_counter:
-        create_bar_chart(dict(tech_counter.most_common(top_n)), 
-                        'Most In-Demand Technologies', 
-                        f'{output_dir}/chart_technologies.png', tech_colors)
-    
+        create_bar_chart(
+            dict(tech_counter.most_common(top_n)),
+            "Most In-Demand Technologies",
+            f"{output_dir}/chart_technologies.png",
+            tech_colors,
+        )
+
     if lang_counter:
-        create_bar_chart(dict(lang_counter.most_common(top_n)), 
-                        'Most Requested Programming Languages', 
-                        f'{output_dir}/chart_languages.png', lang_colors)
-    
+        create_bar_chart(
+            dict(lang_counter.most_common(top_n)),
+            "Most Requested Programming Languages",
+            f"{output_dir}/chart_languages.png",
+            lang_colors,
+        )
+
     if soft_counter:
-        create_bar_chart(dict(soft_counter.most_common(top_n)), 
-                        'Top Soft Skills', 
-                        f'{output_dir}/chart_soft_skills.png', soft_colors)
-    
+        create_bar_chart(
+            dict(soft_counter.most_common(top_n)),
+            "Top Soft Skills",
+            f"{output_dir}/chart_soft_skills.png",
+            soft_colors,
+        )
+
     if hard_counter:
-        create_bar_chart(dict(hard_counter.most_common(top_n)), 
-                        'Top Technical Skills', 
-                        f'{output_dir}/chart_hard_skills.png', hard_colors)
+        create_bar_chart(
+            dict(hard_counter.most_common(top_n)),
+            "Top Technical Skills",
+            f"{output_dir}/chart_hard_skills.png",
+            hard_colors,
+        )
 
     # ---- Export data as JSON for HTML report ----------------------------------
     stats_data = {
-        "date": pd.Timestamp.now().strftime('%B %d, %Y'),
+        "date": pd.Timestamp.now().strftime("%B %d, %Y"),
         "total_jobs": total_jobs,
-        "technologies": [
-            {"name": tech.title(), "percentage": round((raw_counts.get(tech, 0) / total_jobs) * 100, 1)}
-            for tech, _ in tech_counter.most_common(3)
-        ] if tech_counter else [],
-        "languages": [
-            {"name": lang.title(), "percentage": round((raw_counts.get(lang, 0) / total_jobs) * 100, 1)}
-            for lang, _ in lang_counter.most_common(3)
-        ] if lang_counter else [],
-        "soft_skills": [
-            {"name": skill.title(), "percentage": round((raw_counts.get(skill, 0) / total_jobs) * 100, 1)}
-            for skill, _ in soft_counter.most_common(3)
-        ] if soft_counter else [],
-        "hard_skills": [
-            {"name": skill.title(), "percentage": round((raw_counts.get(skill, 0) / total_jobs) * 100, 1)}
-            for skill, _ in hard_counter.most_common(3)
-        ] if hard_counter else [],
-        "recommendations": []
+        "technologies": (
+            [
+                {
+                    "name": tech.title(),
+                    "percentage": round(
+                        (raw_counts.get(tech, 0) / total_jobs) * 100, 1
+                    ),
+                }
+                for tech, _ in tech_counter.most_common(3)
+            ]
+            if tech_counter
+            else []
+        ),
+        "languages": (
+            [
+                {
+                    "name": lang.title(),
+                    "percentage": round(
+                        (raw_counts.get(lang, 0) / total_jobs) * 100, 1
+                    ),
+                }
+                for lang, _ in lang_counter.most_common(3)
+            ]
+            if lang_counter
+            else []
+        ),
+        "soft_skills": (
+            [
+                {
+                    "name": skill.title(),
+                    "percentage": round(
+                        (raw_counts.get(skill, 0) / total_jobs) * 100, 1
+                    ),
+                }
+                for skill, _ in soft_counter.most_common(3)
+            ]
+            if soft_counter
+            else []
+        ),
+        "hard_skills": (
+            [
+                {
+                    "name": skill.title(),
+                    "percentage": round(
+                        (raw_counts.get(skill, 0) / total_jobs) * 100, 1
+                    ),
+                }
+                for skill, _ in hard_counter.most_common(3)
+            ]
+            if hard_counter
+            else []
+        ),
+        "recommendations": [],
     }
-    
+
     # Add recommendations
     if lang_counter:
         top_lang = lang_counter.most_common(1)[0][0]
-        stats_data["recommendations"].append(f"Master {top_lang.title()} - It's the most requested programming language")
+        stats_data["recommendations"].append(
+            f"Master {top_lang.title()} - It's the most requested programming language"
+        )
     if tech_counter:
         top_tech_item = tech_counter.most_common(1)[0][0]
-        stats_data["recommendations"].append(f"Learn {top_tech_item.title()} - This technology appears in the most job postings")
+        stats_data["recommendations"].append(
+            f"Learn {top_tech_item.title()} - This technology appears in the most job postings"
+        )
     if soft_counter:
         top_soft_item = soft_counter.most_common(1)[0][0]
-        stats_data["recommendations"].append(f"Highlight your {top_soft_item.title()} skills - Employers value this quality")
-    
-    # Save JSON
-    with open(f'{output_dir}/stats_data.json', 'w') as f:
-        json.dump(stats_data, f, indent=2)
+        stats_data["recommendations"].append(
+            f"Highlight your {top_soft_item.title()} skills - Employers value this quality"
+        )
 
+    # Save JSON
+    with open(f"{output_dir}/stats_data.json", "w") as f:
+        json.dump(stats_data, f, indent=2)
 
     # ---- Build user-friendly markdown report ----------------------------------
     report = []
@@ -266,15 +563,21 @@ def generate_job_stats(
     report.append(f"**Analysis Date:** {pd.Timestamp.now().strftime('%B %d, %Y')}")
     report.append(f"**Total Jobs Analyzed:** {total_jobs}")
     report.append("")
-    
+
     # Executive Summary
     report.append("## 🎯 Executive Summary")
     report.append("")
-    report.append("This report analyzes job postings to identify the most in-demand skills, ")
-    report.append("technologies, and qualifications in the current job market. The insights ")
-    report.append("can help you focus your learning and highlight the right skills on your resume.")
+    report.append(
+        "This report analyzes job postings to identify the most in-demand skills, "
+    )
+    report.append(
+        "technologies, and qualifications in the current job market. The insights "
+    )
+    report.append(
+        "can help you focus your learning and highlight the right skills on your resume."
+    )
     report.append("")
-    
+
     # Top Technologies
     if tech_counter:
         top_tech = tech_counter.most_common(3)
@@ -283,11 +586,13 @@ def generate_job_stats(
         report.append(f"The top 3 most demanded technologies are:")
         for i, (tech, score) in enumerate(top_tech, 1):
             percentage = (raw_counts.get(tech, 0) / total_jobs) * 100
-            report.append(f"{i}. **{tech.title()}** - Mentioned in {percentage:.1f}% of jobs")
+            report.append(
+                f"{i}. **{tech.title()}** - Mentioned in {percentage:.1f}% of jobs"
+            )
         report.append("")
         report.append("![Technologies Chart](chart_technologies.png)")
         report.append("")
-    
+
     # Programming Languages
     if lang_counter:
         top_langs = lang_counter.most_common(3)
@@ -295,24 +600,30 @@ def generate_job_stats(
         report.append("")
         for i, (lang, score) in enumerate(top_langs, 1):
             percentage = (raw_counts.get(lang, 0) / total_jobs) * 100
-            report.append(f"{i}. **{lang.title()}** - Required in {percentage:.1f}% of positions")
+            report.append(
+                f"{i}. **{lang.title()}** - Required in {percentage:.1f}% of positions"
+            )
         report.append("")
         report.append("![Languages Chart](chart_languages.png)")
         report.append("")
-    
+
     # Soft Skills
     if soft_counter:
         top_soft = soft_counter.most_common(3)
         report.append("### 🤝 Essential Soft Skills")
         report.append("")
-        report.append("Employers are looking for candidates with these interpersonal abilities:")
+        report.append(
+            "Employers are looking for candidates with these interpersonal abilities:"
+        )
         for i, (skill, score) in enumerate(top_soft, 1):
             percentage = (raw_counts.get(skill, 0) / total_jobs) * 100
-            report.append(f"{i}. **{skill.title()}** - Valued in {percentage:.1f}% of roles")
+            report.append(
+                f"{i}. **{skill.title()}** - Valued in {percentage:.1f}% of roles"
+            )
         report.append("")
         report.append("![Soft Skills Chart](chart_soft_skills.png)")
         report.append("")
-    
+
     # Hard Skills
     if hard_counter:
         top_hard = hard_counter.most_common(3)
@@ -320,48 +631,61 @@ def generate_job_stats(
         report.append("")
         for i, (skill, score) in enumerate(top_hard, 1):
             percentage = (raw_counts.get(skill, 0) / total_jobs) * 100
-            report.append(f"{i}. **{skill.title()}** - Needed in {percentage:.1f}% of jobs")
+            report.append(
+                f"{i}. **{skill.title()}** - Needed in {percentage:.1f}% of jobs"
+            )
         report.append("")
         report.append("![Hard Skills Chart](chart_hard_skills.png)")
         report.append("")
-    
+
     # Emerging Trends
     if uncategorized_counter:
         top_emerging = uncategorized_counter.most_common(5)
         report.append("### 🚀 Emerging Trends & Buzzwords")
         report.append("")
-        report.append("These terms are frequently mentioned but may represent new or evolving concepts:")
+        report.append(
+            "These terms are frequently mentioned but may represent new or evolving concepts:"
+        )
         for term, score in top_emerging:
             if len(term) > 2:  # Filter out very short terms
                 percentage = (raw_counts.get(term, 0) / total_jobs) * 100
                 report.append(f"- **{term.title()}** ({percentage:.1f}% of jobs)")
         report.append("")
-    
+
     # Actionable Recommendations
     report.append("## 💡 What This Means For You")
     report.append("")
     report.append("**To maximize your job prospects:**")
     report.append("")
-    
+
     if lang_counter:
         top_lang = lang_counter.most_common(1)[0][0]
-        report.append(f"1. **Master {top_lang.title()}** - It's the most requested programming language")
-    
+        report.append(
+            f"1. **Master {top_lang.title()}** - It's the most requested programming language"
+        )
+
     if tech_counter:
         top_tech_item = tech_counter.most_common(1)[0][0]
-        report.append(f"2. **Learn {top_tech_item.title()}** - This technology appears in the most job postings")
-    
+        report.append(
+            f"2. **Learn {top_tech_item.title()}** - This technology appears in the most job postings"
+        )
+
     if soft_counter:
         top_soft_item = soft_counter.most_common(1)[0][0]
-        report.append(f"3. **Highlight your {top_soft_item.title()} skills** - Employers value this quality")
-    
+        report.append(
+            f"3. **Highlight your {top_soft_item.title()} skills** - Employers value this quality"
+        )
+
     report.append("")
     report.append("---")
     report.append("")
-    report.append("*This analysis is based on job descriptions stored in your local database. ")
+    report.append(
+        "*This analysis is based on job descriptions stored in your local database. "
+    )
     report.append("Results may vary based on industry, location, and job level.*")
-    
+
     return "\n".join(report)
+
 
 # ------------------------------------------------------------
 # 7️⃣ CLI entry point

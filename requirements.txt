@@ -23,8 +23,7 @@ weasyprint==60.1
 markdown==3.5.1
 
 # Database
-psycopg2-binary==2.9.9
-libsql-experimental==0.0.25
+supabase==2.24.0
 
 # Authentication & Security
 firebase-admin==7.1.0

@@ -26,6 +26,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "scikit-learn>=1.7.2",
     "spacy>=3.8.11",
+    "supabase>=2.24.0",
     "uvicorn>=0.38.0",
     "weasyprint>=66.0",
 ]

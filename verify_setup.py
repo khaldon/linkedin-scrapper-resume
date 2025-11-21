@@ -92,27 +92,27 @@ def check_dependencies() -> Dict[str, bool]:
 def check_database_config() -> Dict[str, any]:
     """Check database configuration"""
     results = {
-        "has_supabase_url": False,
-        "has_postgres": False,
+        "has_supabase_config": False,
+        "has_supabase_sdk": False,
         "can_connect": False,
         "db_type": "Unknown",
     }
 
-    # Check for Supabase URL
-    supabase_url = os.getenv("SUPABASE_DATABASE_URL")
-    database_url = os.getenv("DATABASE_URL")
+    # Check for Supabase configuration
+    supabase_url = os.getenv("SUPABASE_URL")
+    supabase_key = os.getenv("SUPABASE_KEY")
 
-    if supabase_url or database_url:
-        results["has_supabase_url"] = True
-        results["db_url"] = supabase_url or database_url
+    if supabase_url and supabase_key:
+        results["has_supabase_config"] = True
+        results["supabase_url"] = supabase_url
 
-    # Check if psycopg2 is available
+    # Check if supabase SDK is available
     try:
         import importlib.util
 
-        results["has_postgres"] = importlib.util.find_spec("psycopg2") is not None
+        results["has_supabase_sdk"] = importlib.util.find_spec("supabase") is not None
     except (ImportError, ValueError):
-        results["has_postgres"] = False
+        results["has_supabase_sdk"] = False
 
     # Try to initialize database
     try:
@@ -121,9 +121,9 @@ def check_database_config() -> Dict[str, any]:
         db = Database()
         results["can_connect"] = True
         results["db_type"] = (
-            "PostgreSQL (Supabase)" if db.use_postgres else "SQLite (Local)"
+            "Supabase (PostgreSQL)" if db.use_supabase else "SQLite (Local)"
         )
-        results["use_postgres"] = db.use_postgres
+        results["use_supabase"] = db.use_supabase
     except Exception as e:
         results["error"] = str(e)
 
@@ -193,8 +193,8 @@ def main():
     print_header("2. Environment Variables")
 
     env_vars = {
-        "SUPABASE_DATABASE_URL": ("Optional - PostgreSQL connection", False),
-        "DATABASE_URL": ("Optional - Alternative PostgreSQL connection", False),
+        "SUPABASE_URL": ("Optional - Supabase project URL", False),
+        "SUPABASE_KEY": ("Optional - Supabase anon/public key", False),
         "DATABASE_PATH": ("Optional - SQLite path (default: data/jobs.db)", False),
         "GOOGLE_API_KEY": ("Required - Google Gemini API key", True),
         "HEADLESS": ("Optional - Browser headless mode", False),
@@ -221,14 +221,14 @@ def main():
         print_success("Database connection successful")
         print_info(f"Database type: {db_config['db_type']}")
 
-        if db_config["use_postgres"]:
-            print_success("Using Supabase PostgreSQL ✨")
-            if db_config["has_postgres"]:
-                print_success("psycopg2 driver installed")
+        if db_config["use_supabase"]:
+            print_success("Using Supabase (PostgreSQL) ✨")
+            if db_config["has_supabase_sdk"]:
+                print_success("Supabase SDK installed")
         else:
             print_info("Using local SQLite database")
             print_warning(
-                "For production on Hugging Face, configure SUPABASE_DATABASE_URL"
+                "For production on Hugging Face, configure SUPABASE_URL and SUPABASE_KEY"
             )
     else:
         print_error("Database connection failed")
@@ -277,8 +277,8 @@ def main():
         print_success("All checks passed! ✨")
         print_info("Your application is ready to deploy to Hugging Face!")
         print_info("\nNext steps:")
-        print_info("  1. Configure Supabase PostgreSQL (recommended for production)")
-        print_info("  2. Set SUPABASE_DATABASE_URL in HF Spaces secrets")
+        print_info("  1. Configure Supabase (recommended for production)")
+        print_info("  2. Set SUPABASE_URL and SUPABASE_KEY in HF Spaces secrets")
         print_info("  3. Set GOOGLE_API_KEY in HF Spaces secrets")
         print_info("  4. Deploy using: git push")
     else:
