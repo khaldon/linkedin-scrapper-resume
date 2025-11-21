@@ -177,7 +177,7 @@ async function signInWithGoogle() {
 
         // Provide helpful error messages
         if (error.code === 'auth/unauthorized-domain') {
-            errorMessage = 'Domain not authorized. Please add "localhost" to Firebase Console → Authentication → Settings → Authorized domains';
+            errorMessage = `Domain "${window.location.hostname}" is not authorized. Please add it to Firebase Console → Authentication → Settings → Authorized domains`;
         } else if (error.code === 'auth/operation-not-allowed') {
             errorMessage = 'Google sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method';
         }
@@ -186,48 +186,7 @@ async function signInWithGoogle() {
     }
 }
 
-// LinkedIn Sign In
-async function signInWithLinkedIn() {
-    if (!auth) {
-        showAlert('auth-alert', 'error', 'Firebase not initialized. Please refresh the page.');
-        return;
-    }
 
-    try {
-        // LinkedIn OAuth2 requires custom implementation
-        // Using OAuthProvider for LinkedIn
-        const provider = new firebase.auth.OAuthProvider('oidc.linkedin');
-        provider.addScope('r_emailaddress');
-        provider.addScope('r_liteprofile');
-
-        // Try popup first
-        try {
-            const result = await auth.signInWithPopup(provider);
-            showAlert('auth-alert', 'success', 'Successfully signed in with LinkedIn!');
-            setTimeout(() => closeAuthModal(), 1000);
-        } catch (popupError) {
-            // If popup fails, try redirect
-            if (popupError.code === 'auth/popup-blocked' ||
-                popupError.code === 'auth/popup-closed-by-user' ||
-                popupError.code === 'auth/cancelled-popup-request') {
-                console.log('Popup failed, trying redirect...');
-                await auth.signInWithRedirect(provider);
-            } else {
-                throw popupError;
-            }
-        }
-
-    } catch (error) {
-        console.error('LinkedIn sign in error:', error);
-        let errorMessage = `Sign in failed: ${error.message}`;
-
-        if (error.code === 'auth/unauthorized-domain') {
-            errorMessage = 'Domain not authorized. Please add "localhost" to Firebase Console → Authentication → Settings → Authorized domains';
-        }
-
-        showAlert('auth-alert', 'error', errorMessage);
-    }
-}
 
 // Logout
 async function logout() {
