@@ -60,6 +60,7 @@ class JobResponse(BaseModel):
     company: str
     poster: str
     description: str
+    full_description: str
 
 class LinkedInCredentials(BaseModel):
     email: str
@@ -225,7 +226,8 @@ async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
             title=result['title'],
             company=result['company'],
             poster=result['poster'],
-            description=result['description']
+            description=result['description'],
+            full_description=result['full_description']
         )
         
     except HTTPException:

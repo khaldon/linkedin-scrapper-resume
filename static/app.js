@@ -356,7 +356,26 @@ document.getElementById('scrape-form')?.addEventListener('submit', async (e) => 
                     </h3>
                     <p><strong><i class="fas fa-building"></i> Company:</strong> ${data.company}</p>
                     <p><strong><i class="fas fa-user"></i> Posted by:</strong> ${data.poster}</p>
-                    <p style="margin-top: 1rem; color: var(--gray);">${data.description}</p>
+                    
+                    <div style="margin-top: 1.5rem;">
+                        <h4 style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-file-alt"></i> Job Description
+                        </h4>
+                        <div style="
+                            background: white; 
+                            padding: 1.25rem; 
+                            border-radius: var(--radius); 
+                            border-left: 4px solid var(--primary);
+                            max-height: 400px;
+                            overflow-y: auto;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                            line-height: 1.6;
+                            color: var(--dark);
+                        ">
+                            ${data.full_description || data.description}
+                        </div>
+                    </div>
                 </div>
             `;
             resultDiv.classList.remove('hidden');
