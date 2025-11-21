@@ -36,10 +36,7 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium browser only (deps already installed above)
-RUN playwright install chromium
-
-# Download spaCy model
+# Download spaCy model (as root)
 RUN python -m spacy download en_core_web_sm
 
 # Copy application code
@@ -53,8 +50,11 @@ RUN mkdir -p data logs static && \
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Switch to non-root user
+# Switch to non-root user BEFORE installing Playwright browsers
 USER appuser
+
+# Install Playwright browsers as appuser (so they're accessible)
+RUN playwright install chromium
 
 # Expose port 7860 (Hugging Face default)
 EXPOSE 7860
