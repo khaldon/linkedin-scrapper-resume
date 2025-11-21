@@ -18,6 +18,25 @@ class Database:
         self.turso_token = os.getenv("TURSO_AUTH_TOKEN")
         self.use_turso = bool(self.turso_url and self.turso_token)
 
+        # Verify Turso connection immediately if enabled
+        if self.use_turso:
+            print(f"🚀 Testing Turso Connection: {self.turso_url}")
+            try:
+                import libsql_experimental as libsql
+
+                # Try to connect and run a simple query to ensure it actually works
+                # We use a fresh connection here just for testing
+                conn = libsql.connect(self.turso_url, auth_token=self.turso_token)
+                conn.execute("SELECT 1")
+                if hasattr(conn, "close"):
+                    conn.close()
+                print("✅ Turso Connection Verified!")
+            except BaseException as e:
+                # Catch ALL errors including Panics (BaseException)
+                print(f"⚠️ Turso connection FAILED: {e}")
+                print("⚠️ Disabling Turso and falling back to local SQLite.")
+                self.use_turso = False
+
         if self.use_turso:
             print(f"🚀 Using Turso Database: {self.turso_url}")
         else:
