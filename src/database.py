@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 try:
     import psycopg2
+
     HAS_POSTGRES = True
 except ImportError:
     HAS_POSTGRES = False
@@ -21,22 +22,37 @@ class Database:
         self.db_url = os.getenv("SUPABASE_DATABASE_URL") or os.getenv("DATABASE_URL")
         self.use_postgres = bool(self.db_url and HAS_POSTGRES)
 
-        if self.use_postgres:
-            logger.info("🚀 Using Supabase/PostgreSQL Database")
+        # Set SQLite path as fallback
+        if db_path is None:
+            self.db_path = os.getenv("DATABASE_PATH", "data/jobs.db")
         else:
-            if db_path is None:
-                self.db_path = os.getenv("DATABASE_PATH", "data/jobs.db")
-            else:
-                self.db_path = db_path
-            logger.info(f"📂 Using Local SQLite: {self.db_path}")
+            self.db_path = db_path
 
-        self._init_db()
+        if self.use_postgres:
+            logger.info("🚀 Attempting to use Supabase/PostgreSQL Database")
+            # Try to connect to PostgreSQL, fall back to SQLite if it fails
+            try:
+                self._init_db()
+                logger.info("✅ Successfully connected to PostgreSQL")
+            except Exception as e:
+                logger.error(f"❌ PostgreSQL connection failed: {e}")
+                logger.warning(f"⚠️  Falling back to SQLite: {self.db_path}")
+                self.use_postgres = False
+                self._init_db()
+        else:
+            logger.info(f"📂 Using Local SQLite: {self.db_path}")
+            self._init_db()
 
     def _get_connection(self):
         """Get a database connection (Local SQLite or Remote Postgres)"""
         if self.use_postgres:
             try:
-                return psycopg2.connect(self.db_url)
+                # Add connection timeout to prevent hanging
+                return psycopg2.connect(
+                    self.db_url,
+                    connect_timeout=10,  # 10 second timeout
+                    options="-c statement_timeout=30000",  # 30 second query timeout
+                )
             except Exception as e:
                 logger.error(f"❌ Postgres connection failed: {e}")
                 raise
