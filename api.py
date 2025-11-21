@@ -122,10 +122,35 @@ async def shutdown_event():
         await auth_instance.close_browser()
     logger.info("Shutting down...")
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def root():
-    """Serve the main frontend"""
-    return FileResponse("static/index.html")
+    """Root endpoint - returns API info"""
+    try:
+        # Try to serve the HTML file
+        html_path = Path("static/index.html")
+        if html_path.exists():
+            return FileResponse("static/index.html")
+        else:
+            # Fallback if HTML doesn't exist
+            return {
+                "message": "LinkedIn Job Scraper & CV Tailor API",
+                "version": "2.0.0",
+                "endpoints": {
+                    "docs": "/docs",
+                    "health": "/api/health",
+                    "scrape": "/api/scrape",
+                    "jobs": "/api/jobs"
+                },
+                "note": "Visit /docs for full API documentation"
+            }
+    except Exception as e:
+        logger.error(f"Error serving root: {e}")
+        return {
+            "message": "LinkedIn Job Scraper & CV Tailor API",
+            "version": "2.0.0",
+            "docs_url": "/docs",
+            "error": str(e)
+        }
 
 @app.get("/favicon.ico")
 async def favicon():
