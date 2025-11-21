@@ -417,6 +417,7 @@ document.getElementById('generate-form')?.addEventListener('submit', async (e) =
     const formData = new FormData();
     formData.append('job_id', jobId);
     formData.append('cv_file', cvFile);
+    formData.append('google_api_key', document.getElementById('google-api-key').value);
 
     try {
         const token = await getAuthToken();

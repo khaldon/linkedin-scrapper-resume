@@ -260,8 +260,8 @@ async def get_linkedin_credentials(user = Depends(require_auth)):
 
 # Job scraping endpoints
 @app.post("/api/scrape", response_model=JobResponse)
-async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
-    """Scrape a LinkedIn job posting"""
+async def scrape_job(request: JobURLRequest, user = Depends(require_auth)):
+    """Scrape a LinkedIn job posting - requires authentication and stored LinkedIn credentials"""
     global auth_instance, scraper_instance
     
     try:
@@ -269,26 +269,35 @@ async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
         linkedin_email = None
         linkedin_password = None
         
-        # Try to get stored credentials if user is authenticated
-        if user:
-            existing_user = db.get_user_by_email(user['email'])
-            if existing_user:
-                encrypted = db.get_linkedin_credentials(existing_user['id'])
-                if encrypted:
-                    decrypted = decrypt_linkedin_credentials(user['email'], encrypted)
-                    if decrypted:
-                        linkedin_email = decrypted['email']
-                        linkedin_password = decrypted['password']
+        # Get stored credentials from authenticated user
+        existing_user = db.get_user_by_email(user['email'])
+        if not existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="User not found. Please sync your account first via /api/auth/sync"
+            )
         
-        # Fallback to environment variables
-        if not linkedin_email:
-            linkedin_email = os.getenv("LINKEDIN_EMAIL")
-            linkedin_password = os.getenv("LINKEDIN_PASSWORD")
+        encrypted = db.get_linkedin_credentials(existing_user['id'])
+        if not encrypted:
+            raise HTTPException(
+                status_code=400,
+                detail="LinkedIn credentials not configured. Please store your LinkedIn credentials in the LinkedIn Auth tab first."
+            )
+        
+        decrypted = decrypt_linkedin_credentials(user['email'], encrypted)
+        if not decrypted:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to decrypt LinkedIn credentials. Please re-enter your credentials."
+            )
+        
+        linkedin_email = decrypted['email']
+        linkedin_password = decrypted['password']
         
         if not linkedin_email or not linkedin_password:
             raise HTTPException(
-                status_code=500,
-                detail="LinkedIn credentials not configured. Please store your credentials in the LinkedIn Auth tab."
+                status_code=400,
+                detail="LinkedIn credentials incomplete. Please store both email and password in the LinkedIn Auth tab."
             )
         
         # Initialize auth if needed
@@ -342,10 +351,18 @@ async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
 async def generate_cv(
     job_id: int = Form(...),
     cv_file: UploadFile = File(...),
-    user = Depends(get_current_user)
+    google_api_key: str = Form(...),
+    user = Depends(require_auth)
 ):
-    """Generate a tailored CV for a job"""
+    """Generate a tailored CV for a job - requires user's own Google API key"""
     try:
+        # Validate API key is provided
+        if not google_api_key or len(google_api_key) < 10:
+            raise HTTPException(
+                status_code=400, 
+                detail="Valid Google API key required. Get one from https://makersuite.google.com/app/apikey"
+            )
+        
         # Read uploaded CV
         cv_content = await cv_file.read()
         current_cv = cv_content.decode('utf-8')
@@ -357,8 +374,8 @@ async def generate_cv(
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
         
-        # Generate tailored CV
-        llm = LLMGenerator()
+        # Generate tailored CV with user's API key
+        llm = LLMGenerator(api_key=google_api_key)
         tailored_cv = llm.generate_tailored_cv(job['full_description'], current_cv)
         
         # Save CV
@@ -380,6 +397,8 @@ async def generate_cv(
             "message": "CV generated successfully"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error generating CV: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
