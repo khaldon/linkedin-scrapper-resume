@@ -34,17 +34,18 @@ git remote add space https://huggingface.co/spaces/YOUR_HF_USERNAME/linkedin-scr
 git push space main
 ```
 
-## Step 3: Configure Environment Variables
+## Step 3: Configure Environment Variables (Optional)
 
-Your app needs API keys to work.
+**Note**: As of the latest update, this app is configured for **public deployment** where users provide their own credentials. You **do NOT need** to set these secrets:
 
-1.  In your Space, go to **Settings**.
-2.  Scroll to **"Variables and secrets"**.
-3.  Add the following **Secrets** (for sensitive data):
-    *   `GOOGLE_API_KEY`: Your Gemini API key.
-    *   `LINKEDIN_EMAIL`: Your LinkedIn email.
-    *   `LINKEDIN_PASSWORD`: Your LinkedIn password.
-    *   `DATABASE_PATH`: `/app/data/jobs.db` (Optional, but good practice).
+- ❌ `GOOGLE_API_KEY` - Users provide their own
+- ❌ `LINKEDIN_EMAIL` - Users store their own  
+- ❌ `LINKEDIN_PASSWORD` - Users store their own
+
+**Optional secrets** (for advanced features):
+- `DATABASE_PATH`: `/app/data/jobs.db` (default is fine)
+
+**See [PUBLIC_DEPLOYMENT_GUIDE.md](PUBLIC_DEPLOYMENT_GUIDE.md) for full details on the new security model.**
 
 ## Step 4: Persistence (Optional)
 
