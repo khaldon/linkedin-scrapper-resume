@@ -24,6 +24,7 @@ markdown==3.5.1
 
 # Database
 psycopg2-binary==2.9.9
+libsql-experimental==0.0.25
 
 # Authentication & Security
 firebase-admin==7.1.0

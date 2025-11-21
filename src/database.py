@@ -1,19 +1,37 @@
 import sqlite3
 import json
+import os
 from datetime import datetime
 from typing import Dict, Optional
 
 class Database:
     def __init__(self, db_path: Optional[str] = None):
-        if db_path is None:
-            import os
-            self.db_path = os.getenv("DATABASE_PATH", "data/jobs.db")
+        # Check for Turso configuration
+        self.turso_url = os.getenv("TURSO_DATABASE_URL")
+        self.turso_token = os.getenv("TURSO_AUTH_TOKEN")
+        self.use_turso = bool(self.turso_url and self.turso_token)
+        
+        if self.use_turso:
+            print(f"🚀 Using Turso Database: {self.turso_url}")
         else:
-            self.db_path = db_path
+            if db_path is None:
+                self.db_path = os.getenv("DATABASE_PATH", "data/jobs.db")
+            else:
+                self.db_path = db_path
+            print(f"📂 Using Local SQLite: {self.db_path}")
+            
         self._init_db()
 
+    def _get_connection(self):
+        """Get a database connection (Local SQLite or Remote Turso)"""
+        if self.use_turso:
+            import libsql_experimental as libsql
+            return libsql.connect(self.turso_url, auth_token=self.turso_token)
+        else:
+            return sqlite3.connect(self.db_path)
+
     def _init_db(self):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         # Create users table
@@ -70,7 +88,7 @@ class Database:
         conn.close()
 
     def save_job(self, job_data: Dict) -> int:
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         try:
@@ -94,7 +112,9 @@ class Database:
             else:
                 # If it was a replace (update), we need to fetch the ID
                 cursor.execute("SELECT id FROM jobs WHERE url = ?", (job_data['url'],))
-                job_id = cursor.fetchone()[0]
+                result = cursor.fetchone()
+                # Handle difference between sqlite3 (tuple) and libsql (sometimes object)
+                job_id = result[0] if result else None
                 
             conn.commit()
             return job_id
@@ -103,8 +123,9 @@ class Database:
 
     def check_job_exists(self, url: str) -> Optional[Dict]:
         """Check if a job with this URL already exists"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._get_connection()
+        # Note: libsql might not support row_factory assignment the same way
+        # We'll handle row conversion manually to be safe across both
         cursor = conn.cursor()
         
         cursor.execute("SELECT id, title, company, scraped_at FROM jobs WHERE url = ?", (url,))
@@ -112,24 +133,34 @@ class Database:
         conn.close()
         
         if row:
-            return dict(row)
+            # Convert tuple/row to dict manually
+            return {
+                "id": row[0],
+                "title": row[1],
+                "company": row[2],
+                "scraped_at": row[3]
+            }
         return None
 
     def get_job(self, job_id: int) -> Optional[Dict]:
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
-        conn.row_factory = sqlite3.Row
         
         cursor.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))
         row = cursor.fetchone()
-        conn.close()
         
+        # Get column names to create dict
         if row:
-            return dict(row)
+            col_names = [description[0] for description in cursor.description]
+            result = dict(zip(col_names, row))
+            conn.close()
+            return result
+            
+        conn.close()
         return None
 
     def save_generated_cv(self, job_id: int, original_cv: str, tailored_cv: str):
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -143,8 +174,7 @@ class Database:
 
     def get_all_jobs(self, limit: int = 10, offset: int = 0):
         """Get all jobs with pagination"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -155,13 +185,20 @@ class Database:
         """, (limit, offset))
         
         rows = cursor.fetchall()
-        conn.close()
         
-        return [dict(row) for row in rows]
+        # Get column names
+        if cursor.description:
+            col_names = [description[0] for description in cursor.description]
+            results = [dict(zip(col_names, row)) for row in rows]
+        else:
+            results = []
+            
+        conn.close()
+        return results
 
     def delete_job(self, job_id: int) -> bool:
         """Delete a job and its associated CV generations"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         try:
@@ -180,7 +217,7 @@ class Database:
     # User management methods
     def create_user(self, email: str, hashed_password: str) -> int:
         """Create a new user"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         try:
@@ -197,36 +234,42 @@ class Database:
 
     def get_user_by_email(self, email: str) -> Optional[Dict]:
         """Get user by email"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
         row = cursor.fetchone()
-        conn.close()
         
         if row:
-            return dict(row)
+            col_names = [description[0] for description in cursor.description]
+            result = dict(zip(col_names, row))
+            conn.close()
+            return result
+            
+        conn.close()
         return None
 
     def get_user_by_id(self, user_id: int) -> Optional[Dict]:
         """Get user by ID"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
         row = cursor.fetchone()
-        conn.close()
         
         if row:
-            return dict(row)
+            col_names = [description[0] for description in cursor.description]
+            result = dict(zip(col_names, row))
+            conn.close()
+            return result
+            
+        conn.close()
         return None
 
     # LinkedIn credentials management
     def store_linkedin_credentials(self, user_id: int, encrypted_credentials: str):
         """Store encrypted LinkedIn credentials for a user"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         try:
@@ -241,7 +284,7 @@ class Database:
 
     def get_linkedin_credentials(self, user_id: int) -> Optional[str]:
         """Get encrypted LinkedIn credentials for a user"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
@@ -257,7 +300,7 @@ class Database:
 
     def delete_linkedin_credentials(self, user_id: int) -> bool:
         """Delete LinkedIn credentials for a user"""
-        conn = sqlite3.connect(self.db_path)
+        conn = self._get_connection()
         cursor = conn.cursor()
         
         try:
