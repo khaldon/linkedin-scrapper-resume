@@ -51,7 +51,7 @@ class Database:
                 import libsql_experimental as libsql
 
                 return libsql.connect(self.turso_url, auth_token=self.turso_token)
-            except Exception as e:
+            except BaseException as e:
                 print(f"⚠️ Turso connection failed: {e}. Falling back to local SQLite.")
                 self.use_turso = False
                 return sqlite3.connect(self.db_path)
@@ -63,7 +63,7 @@ class Database:
         try:
             if hasattr(conn, "close"):
                 conn.close()
-        except Exception:
+        except BaseException:
             pass
 
     def _init_db(self):
