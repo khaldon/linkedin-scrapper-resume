@@ -14,6 +14,54 @@ class LinkedInScraper:
         self.browser: Optional[Browser] = None
         self.playwright = None
     
+    @staticmethod
+    def normalize_linkedin_url(url: str) -> str:
+        """
+        Normalize LinkedIn job URLs to canonical format: https://www.linkedin.com/jobs/view/{job_id}
+        
+        Handles various URL formats:
+        - https://www.linkedin.com/jobs/view/4284088753
+        - https://www.linkedin.com/jobs/collections/recommended/?currentJobId=4284088753
+        - https://www.linkedin.com/jobs/search/?currentJobId=4284088753
+        
+        Args:
+            url: LinkedIn job URL in any format
+            
+        Returns:
+            Canonical URL format
+        """
+        import re
+        from urllib.parse import urlparse, parse_qs
+        
+        # Extract job ID from URL
+        job_id = None
+        
+        # Method 1: Extract from /jobs/view/{id} format
+        match = re.search(r'/jobs/view/(\d+)', url)
+        if match:
+            job_id = match.group(1)
+        
+        # Method 2: Extract from currentJobId parameter
+        if not job_id:
+            parsed = urlparse(url)
+            params = parse_qs(parsed.query)
+            if 'currentJobId' in params:
+                job_id = params['currentJobId'][0]
+        
+        # Method 3: Extract any sequence of digits after /jobs/
+        if not job_id:
+            match = re.search(r'/jobs/[^/]*/(\d+)', url)
+            if match:
+                job_id = match.group(1)
+        
+        if job_id:
+            canonical_url = f"https://www.linkedin.com/jobs/view/{job_id}"
+            logger.info(f"🔗 Normalized URL: {url} → {canonical_url}")
+            return canonical_url
+        else:
+            logger.warning(f"⚠️ Could not extract job ID from URL: {url}. Using as-is.")
+            return url
+    
     async def __aenter__(self):
         """Async context manager entry"""
         await self.start()
@@ -54,11 +102,14 @@ class LinkedInScraper:
         Only publicly visible data will be extracted.
         
         Args:
-            url: LinkedIn job post URL
+            url: LinkedIn job post URL (any format)
             
         Returns:
             Dictionary with job details or None if scraping failed
         """
+        # Normalize URL to canonical format
+        url = self.normalize_linkedin_url(url)
+        
         if not self.browser:
             await self.start()
         
