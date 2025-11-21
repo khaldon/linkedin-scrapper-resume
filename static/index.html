@@ -788,7 +788,8 @@
     <!-- Hero -->
     <div class="hero">
         <h1><i class="fas fa-sparkles"></i> AI-Powered Career Tools</h1>
-        <p>Scrape LinkedIn jobs, generate ATS-optimized CVs, and analyze market trends all in one place.</p>
+        <p>Scrape LinkedIn jobs anonymously (no login required!), generate ATS-optimized CVs, and analyze market trends.
+        </p>
     </div>
 
     <!-- Main Container -->
@@ -806,9 +807,6 @@
             </button>
             <button class="tab" onclick="switchTab('jobs')">
                 <i class="fas fa-briefcase"></i> My Jobs
-            </button>
-            <button class="tab" onclick="switchTab('linkedin')">
-                <i class="fab fa-linkedin"></i> LinkedIn Auth
             </button>
         </div>
 
@@ -954,74 +952,6 @@
         </div>
 
         <!-- Tab 5: LinkedIn Auth -->
-        <div id="tab-linkedin" class="tab-content">
-            <div class="card">
-                <div class="card-icon">
-                    <i class="fab fa-linkedin"></i>
-                </div>
-                <h2>LinkedIn Authentication</h2>
-                <p>Securely store your LinkedIn cookies for seamless scraping. Your credentials are encrypted and stored
-                    safely.</p>
-
-                <div id="linkedin-alert"></div>
-
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    <div>
-                        <strong>Secure Storage:</strong> Your cookies are encrypted using AES-256 encryption before
-                        storage.
-                        Only you can access them with your account.
-                    </div>
-                </div>
-
-                <form id="linkedin-auth-form">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-envelope"></i> LinkedIn Email
-                        </label>
-                        <input type="email" class="form-input" id="linkedin-email" placeholder="your-email@example.com"
-                            required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-lock"></i> LinkedIn Password
-                        </label>
-                        <input type="password" class="form-input" id="linkedin-password" placeholder="••••••••"
-                            required>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary btn-block">
-                        <i class="fas fa-shield-alt"></i>
-                        <span>Save Encrypted Credentials</span>
-                    </button>
-                </form>
-
-                <div style="margin-top: 2rem; padding: 1.5rem; background: var(--light); border-radius: var(--radius);">
-                    <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-lock"></i> Security Features
-                    </h3>
-                    <ul style="list-style: none; padding: 0;">
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            AES-256 encryption for credentials
-                        </li>
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            Encrypted storage in Google Secret Manager
-                        </li>
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            No plain-text storage
-                        </li>
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            User-specific encryption keys
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Auth Modal -->

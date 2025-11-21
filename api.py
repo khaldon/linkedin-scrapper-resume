@@ -17,14 +17,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import existing modules
-from src.linkedin_auth import LinkedInAuth
 from src.scraper import LinkedInScraper
 from src.database import Database
 from src.llm_generator import LLMGenerator
 from src.stats_generator import generate_job_stats
 from src.pdf_converter import convert_md_to_pdf
 from src.firebase_auth import verify_firebase_token, firebase_auth_manager
-from src.encryption import encrypt_linkedin_credentials, decrypt_linkedin_credentials
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -73,9 +71,7 @@ class UserSync(BaseModel):
     name: Optional[str] = None
     picture: Optional[str] = None
 
-# Global state
-scraper_instance = None
-auth_instance = None
+# Global state (minimal - scraper creates its own instances now)
 
 # Dependency to get current user from Firebase token
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
@@ -117,9 +113,6 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global auth_instance
-    if auth_instance:
-        await auth_instance.close_browser()
     logger.info("Shutting down...")
 
 @app.get("/")
@@ -193,158 +186,52 @@ async def sync_user(user = Depends(require_auth)):
         logger.error(f"Error syncing user: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/linkedin/store-credentials")
-async def store_linkedin_credentials(
-    credentials: LinkedInCredentials,
-    user = Depends(require_auth)
-):
-    """Store encrypted LinkedIn credentials for a user"""
-    try:
-        db = Database()
-        
-        # Get or create user
-        existing_user = db.get_user_by_email(user['email'])
-        if not existing_user:
-            user_id = db.create_user(user['email'], hashed_password="oauth2")
-        else:
-            user_id = existing_user['id']
-        
-        # Encrypt credentials
-        encrypted = encrypt_linkedin_credentials(
-            user['email'],
-            credentials.email,
-            credentials.password
-        )
-        
-        # Store in database
-        db.store_linkedin_credentials(user_id, encrypted)
-        
-        logger.info(f"Stored encrypted LinkedIn credentials for user: {user['email']}")
-        
-        return {
-            "message": "LinkedIn credentials encrypted and stored successfully",
-            "user_id": user_id
-        }
-    except Exception as e:
-        logger.error(f"Error storing credentials: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/linkedin/get-credentials")
-async def get_linkedin_credentials(user = Depends(require_auth)):
-    """Get decrypted LinkedIn credentials for a user"""
-    try:
-        db = Database()
-        
-        existing_user = db.get_user_by_email(user['email'])
-        if not existing_user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        encrypted = db.get_linkedin_credentials(existing_user['id'])
-        if not encrypted:
-            raise HTTPException(status_code=404, detail="LinkedIn credentials not found")
-        
-        # Decrypt credentials
-        decrypted = decrypt_linkedin_credentials(user['email'], encrypted)
-        if not decrypted:
-            raise HTTPException(status_code=500, detail="Failed to decrypt credentials")
-        
-        return {
-            "email": decrypted['email'],
-            "has_password": bool(decrypted.get('password'))
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting credentials: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# LinkedIn credentials endpoints removed - no longer needed for anonymous scraping
 
 # Job scraping endpoints
 @app.post("/api/scrape", response_model=JobResponse)
-async def scrape_job(request: JobURLRequest, user = Depends(require_auth)):
-    """Scrape a LinkedIn job posting - requires authentication and stored LinkedIn credentials"""
-    global auth_instance, scraper_instance
-    
+async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
+    """
+    Scrape a LinkedIn job posting anonymously (no LinkedIn login required).
+    Only publicly visible data will be extracted.
+    """
     try:
         db = Database()
-        linkedin_email = None
-        linkedin_password = None
         
-        # Get stored credentials from authenticated user
-        existing_user = db.get_user_by_email(user['email'])
-        if not existing_user:
-            raise HTTPException(
-                status_code=400,
-                detail="User not found. Please sync your account first via /api/auth/sync"
-            )
+        logger.info(f"🔍 Scraping job anonymously: {request.url}")
         
-        encrypted = db.get_linkedin_credentials(existing_user['id'])
-        if not encrypted:
-            raise HTTPException(
-                status_code=400,
-                detail="LinkedIn credentials not configured. Please store your LinkedIn credentials in the LinkedIn Auth tab first."
-            )
-        
-        decrypted = decrypt_linkedin_credentials(user['email'], encrypted)
-        if not decrypted:
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to decrypt LinkedIn credentials. Please re-enter your credentials."
-            )
-        
-        linkedin_email = decrypted['email']
-        linkedin_password = decrypted['password']
-        
-        if not linkedin_email or not linkedin_password:
-            raise HTTPException(
-                status_code=400,
-                detail="LinkedIn credentials incomplete. Please store both email and password in the LinkedIn Auth tab."
-            )
-        
-        # Initialize auth if needed
-        if not auth_instance:
-            auth_instance = LinkedInAuth(headless=True, slow_mo=100)
-            
-            if not await auth_instance.is_logged_in():
-                success = await auth_instance.login(linkedin_email, linkedin_password)
-                if not success:
-                    raise HTTPException(
-                        status_code=401,
-                        detail="LinkedIn authentication failed"
-                    )
-        
-        # Get authenticated context
-        context = await auth_instance.get_authenticated_context()
-        if not context:
-            raise HTTPException(
-                status_code=500,
-                detail="Could not get authenticated context"
-            )
-        
-        # Initialize scraper
-        scraper_instance = LinkedInScraper(context)
+        # Create anonymous scraper (no authentication needed!)
+        scraper = LinkedInScraper()
         
         # Scrape the job
-        result = await scraper_instance.scrape_job_post(str(request.url))
+        result = await scraper.scrape_job_post(str(request.url))
+        
+        # Close browser
+        await scraper.close()
         
         if not result:
             raise HTTPException(
                 status_code=404,
-                detail="Failed to scrape job posting"
+                detail="Failed to scrape job posting. The job may not be publicly visible or the URL is invalid."
             )
         
         # Save to database
         job_id = db.save_job(result)
+        
+        logger.info(f"✅ Job scraped and saved with ID: {job_id}")
         
         return JobResponse(
             job_id=job_id,
             title=result['title'],
             company=result['company'],
             poster=result['poster'],
-            description=result['description'][:500] + "..."
+            description=result['description']
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error scraping job: {str(e)}")
+        logger.error(f"❌ Error scraping job: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate-cv")

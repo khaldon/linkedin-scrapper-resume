@@ -621,36 +621,4 @@ async function loadJobs() {
     }
 }
 
-// LinkedIn Auth Form
-document.getElementById('linkedin-auth-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const email = document.getElementById('linkedin-email').value;
-    const password = document.getElementById('linkedin-password').value;
-    const alertDiv = document.getElementById('linkedin-alert');
-
-    showAlert('linkedin-alert', 'info', 'Encrypting and storing your credentials securely...');
-
-    try {
-        const token = await getAuthToken();
-        const headers = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-
-        const response = await fetch(`${API_URL}/api/linkedin/store-credentials`, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showAlert('linkedin-alert', 'success', 'Credentials encrypted and stored successfully! You can now scrape jobs without entering credentials each time.');
-            document.getElementById('linkedin-auth-form').reset();
-        } else {
-            showAlert('linkedin-alert', 'error', data.detail || 'Failed to store credentials');
-        }
-    } catch (error) {
-        showAlert('linkedin-alert', 'error', `Network error: ${error.message}`);
-    }
-});
+// LinkedIn Auth removed - anonymous scraping now!
