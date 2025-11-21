@@ -54,6 +54,44 @@ By default, Spaces restart every 48 hours and lose data. To keep your database:
 2.  **OR (Free Workaround)**: Use the "Duplicate Space" feature to restart if it sleeps, but accept that `jobs.db` resets on restart.
     *   *For a personal tool, this is usually fine as you can just re-scrape jobs.*
 
+## Step 5: Access Your Deployed App 🌐
+
+Once the build completes (check the **"Logs"** tab), your app will be live!
+
+### Access URLs:
+
+1. **Space Page**: `https://huggingface.co/spaces/YOUR_USERNAME/linkedin-scraper-resume`
+2. **Direct App**: `https://YOUR_USERNAME-linkedin-scraper-resume.hf.space`
+
+Replace `YOUR_USERNAME` with your Hugging Face username.
+
+### Privacy Settings:
+
+**Public Space** (default):
+- ✅ Anyone can access without login
+- ✅ Great for portfolio/demo
+- ⚠️ **Warning**: Anyone can use YOUR LinkedIn credentials to scrape jobs
+
+**Private Space** (recommended for personal use):
+1. Go to **Settings** → **Visibility**
+2. Change to **Private**
+3. Only you (and invited users) can access
+
+### Security Best Practices:
+
+- ✅ **Always use Secrets** for API keys and credentials (not hardcoded)
+- ✅ **Make it Private** if you don't want strangers using your LinkedIn account
+- ✅ **Monitor usage** in the Space logs to detect abuse
+- ❌ **Never commit** `.env` or credentials to Git
+
+### Testing Your Deployment:
+
+1. Visit your Space URL
+2. Open the FastAPI docs: `https://YOUR_USERNAME-linkedin-scraper-resume.hf.space/docs`
+3. Test the API endpoints
+4. Check logs for any errors
+
+
 ## Troubleshooting
 
 *   **"Build Failed"**: Check the "Logs" tab in your Space.
