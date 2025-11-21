@@ -10,6 +10,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------
@@ -350,6 +351,17 @@ def generate_job_stats(
 
     # Guard clauses for empty data
     if total_jobs == 0:
+        empty_stats = {
+            "total_jobs": 0,
+            "technologies": [],
+            "languages": [],
+            "soft_skills": [],
+            "hard_skills": [],
+            "recommendations": [],
+            "market_summary": "No jobs found in database. Please scrape some jobs first.",
+        }
+        with open(f"{output_dir}/stats_data.json", "w") as f:
+            json.dump(empty_stats, f, indent=2)
         return "# 📊 Job Market Analysis Report\n\n**No jobs found in database.**\n\nPlease scrape some job postings first before generating statistics."
 
     # Optional LLM enrichment of descriptions
@@ -368,6 +380,17 @@ def generate_job_stats(
 
     normalised = [_normalize(desc or "") for (desc,) in rows]
     if not any(normalised) or all(len(n.strip()) == 0 for n in normalised):
+        empty_stats = {
+            "total_jobs": total_jobs,
+            "technologies": [],
+            "languages": [],
+            "soft_skills": [],
+            "hard_skills": [],
+            "recommendations": [],
+            "market_summary": "Jobs found, but they have no descriptions to analyze.",
+        }
+        with open(f"{output_dir}/stats_data.json", "w") as f:
+            json.dump(empty_stats, f, indent=2)
         return "# 📊 Job Market Analysis Report\n\n**No job descriptions found.**\n\nThe jobs in the database don't have descriptions to analyze."
 
     # ---- Phrase counting ------------------------------------------------------
@@ -631,6 +654,19 @@ def generate_job_stats(
         stats_data["recommendations"].append(
             f"Highlight your {top_soft_item.title()} skills - Employers value this quality"
         )
+
+    # ---- LLM Market Insights --------------------------------------------------
+    if use_llm:
+        try:
+            from src.llm_generator import LLMGenerator
+
+            llm = LLMGenerator()
+            logger.info("Generating market insights with LLM...")
+            market_summary = llm.generate_market_insights(stats_data)
+            stats_data["market_summary"] = market_summary
+        except Exception as e:
+            logger.error(f"Failed to generate market insights: {e}")
+            stats_data["market_summary"] = "Market insights currently unavailable."
 
     # Save JSON
     with open(f"{output_dir}/stats_data.json", "w") as f:

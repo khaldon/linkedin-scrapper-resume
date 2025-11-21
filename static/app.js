@@ -348,6 +348,7 @@ document.getElementById('scrape-form')?.addEventListener('submit', async (e) => 
 
         if (response.ok) {
             showAlert('scrape-alert', 'success', `Job scraped successfully! Job ID: ${data.job_id}`);
+            await loadJobs();
 
             resultDiv.innerHTML = `
                 <div style="margin-top: 2rem; padding: 1.5rem; background: var(--light); border-radius: var(--radius);">
@@ -547,6 +548,17 @@ function displayStats(stats, charts) {
         </div>
     `;
 
+    if (stats.market_summary) {
+        html += `
+            <div class="chart-container" style="background: linear-gradient(to right, #f8f9fa, #e9ecef); border-left: 5px solid var(--primary);">
+                <h3><i class="fas fa-robot"></i> AI Market Analysis</h3>
+                <div style="white-space: pre-wrap; line-height: 1.6; color: var(--dark);">
+                    ${stats.market_summary}
+                </div>
+            </div>
+        `;
+    }
+
     if (stats.technologies.length > 0) {
         html += `
             <div class="chart-container">
@@ -607,10 +619,14 @@ async function loadJobs() {
         const headers = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const response = await fetch(`${API_URL}/api/jobs?limit=20`, { headers });
+        const response = await fetch(`${API_URL}/api/jobs?limit=1000`, { headers });
         const data = await response.json();
+        // Refresh stats after fetching jobs to keep UI in sync
+        await loadStats();
 
         const listDiv = document.getElementById('jobs-list');
+        // Clear any previous entries to avoid duplicates
+        listDiv.innerHTML = '';
 
         if (data.jobs.length === 0) {
             listDiv.innerHTML = `

@@ -6,15 +6,18 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
 logger = logging.getLogger(__name__)
 
+
 class LLMGenerator:
     """
     LLM Generator using Google's Gemini API for CV tailoring.
     """
-    
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"):
+
+    def __init__(
+        self, api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"
+    ):
         """
         Initialize the LLM Generator with Google Gemini API.
-        
+
         Args:
             api_key: Google API key. If not provided, will try to get from GOOGLE_API_KEY env var
             model_name: Gemini model to use (default: gemini-2.5-flash)
@@ -22,7 +25,7 @@ class LLMGenerator:
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         self.model_name = model_name
         self.model = None
-        
+
         if not self.api_key:
             logger.warning("GOOGLE_API_KEY not set. CV generation will be simulated.")
         else:
@@ -41,9 +44,11 @@ class LLMGenerator:
                         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
                         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
                         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                    }
+                    },
                 )
-                logger.info(f"✅ Google Gemini API initialized successfully with model: {self.model_name}")
+                logger.info(
+                    f"✅ Google Gemini API initialized successfully with model: {self.model_name}"
+                )
             except Exception as e:
                 logger.error(f"❌ Failed to initialize Google Gemini API: {str(e)}")
                 self.model = None
@@ -51,30 +56,30 @@ class LLMGenerator:
     def generate_tailored_cv(self, job_description: str, current_cv: str) -> str:
         """
         Generates a tailored CV based on the job description and current CV.
-        
+
         Args:
             job_description: The job description to tailor the CV for
             current_cv: The current CV content
-            
+
         Returns:
             Tailored CV in Markdown format
         """
         if not self.model:
             logger.warning("Model not initialized. Using simulated response.")
             return self._simulate_response(job_description)
-        
+
         prompt = self._create_prompt(job_description, current_cv)
-        
+
         try:
             logger.info("🧠 Sending request to Google Gemini API...")
             response = self.model.generate_content(prompt)
-            
+
             if response and response.text:
                 logger.info("✅ Successfully generated tailored CV")
                 # Clean up the response - remove markdown code blocks if present
                 cleaned_text = response.text.strip()
                 if cleaned_text.startswith("```markdown"):
-                    cleaned_text = cleaned_text[len("```markdown"):].strip()
+                    cleaned_text = cleaned_text[len("```markdown") :].strip()
                 elif cleaned_text.startswith("```"):
                     cleaned_text = cleaned_text[3:].strip()
                 if cleaned_text.endswith("```"):
@@ -83,7 +88,7 @@ class LLMGenerator:
             else:
                 logger.warning("Empty response from API. Using simulated response.")
                 return self._simulate_response(job_description)
-                
+
         except Exception as e:
             logger.error(f"❌ Error calling Gemini API: {str(e)}")
             logger.info("Falling back to simulated response")
