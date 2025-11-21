@@ -252,18 +252,10 @@ async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
 async def generate_cv(
     job_id: int = Form(...),
     cv_file: UploadFile = File(...),
-    google_api_key: str = Form(...),
     user = Depends(require_auth)
 ):
-    """Generate a tailored CV for a job - requires user's own Google API key"""
+    """Generate a tailored CV for a job using Google Gemini API (Server-side key)"""
     try:
-        # Validate API key is provided
-        if not google_api_key or len(google_api_key) < 10:
-            raise HTTPException(
-                status_code=400, 
-                detail="Valid Google API key required. Get one from https://makersuite.google.com/app/apikey"
-            )
-        
         # Read uploaded CV
         cv_content = await cv_file.read()
         current_cv = cv_content.decode('utf-8')
@@ -275,8 +267,8 @@ async def generate_cv(
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
         
-        # Generate tailored CV with user's API key
-        llm = LLMGenerator(api_key=google_api_key)
+        # Generate tailored CV using configured LLM service
+        llm = LLMGenerator()
         tailored_cv = llm.generate_tailored_cv(job['full_description'], current_cv)
         
         # Save CV
