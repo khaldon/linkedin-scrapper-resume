@@ -30,11 +30,14 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements
-COPY requirements.txt .
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy project definition
+COPY pyproject.toml .
+
+# Install dependencies using uv
+RUN uv pip install --system -r pyproject.toml
 
 # Download spaCy model (as root)
 RUN python -m spacy download en_core_web_sm
