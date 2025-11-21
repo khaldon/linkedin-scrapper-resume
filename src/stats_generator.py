@@ -9,9 +9,8 @@ import spacy
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib
-
-matplotlib.use("Agg")  # Non-interactive backend for server environments
+import logging
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------
 # 2️⃣ Skill vocabularies
@@ -309,23 +308,25 @@ def create_bar_chart(data: dict, title: str, filename: str, color_palette: list)
 # 6️⃣ Main statistics function
 # ------------------------------------------------------------
 def generate_job_stats(
-    db_path: str = "data/jobs.db",
     top_n: int = 10,
     use_tfidf: bool = True,
     onet_path: str | None = None,
     output_dir: str = "data",
+    use_llm: bool = False,
 ) -> str:
-    """Generate a user-friendly markdown report with visualizations."""
+    """Generate a user‑friendly markdown report with visualizations.
 
-    # ---- Load job descriptions using Database class ---------------------------
+    If ``use_llm`` is True, each job description is enriched via the LLM
+    (e.g., summarised or expanded) before the statistical analysis.
+    """
+
+    # ---- Load job descriptions via Database (Supabase only) -------------------
     from src.database import Database
+    from src.llm_generator import LLMGenerator
 
-    db = Database(db_path=db_path)
-
-    # Get all jobs (no limit to get all for stats)
-    all_jobs = db.get_all_jobs(limit=1000, offset=0)  # Adjust limit as needed
-
-    # Keep fetching until we have all jobs
+    db = Database()
+    # Fetch all jobs (paginated)
+    all_jobs = db.get_all_jobs(limit=1000, offset=0)
     offset = 1000
     while True:
         more_jobs = db.get_all_jobs(limit=1000, offset=offset)
@@ -334,9 +335,88 @@ def generate_job_stats(
         all_jobs.extend(more_jobs)
         offset += 1000
 
-    # Extract descriptions
-    rows = [(job.get("full_description", ""),) for job in all_jobs]
+    # Ensure we have unique job IDs (prevent accidental duplicates)
+    seen_ids = set()
+    unique_jobs = []
+    for job in all_jobs:
+        jid = job.get("id")
+        if jid is None or jid in seen_ids:
+            continue
+        seen_ids.add(jid)
+        unique_jobs.append(job)
+
+    rows = [(job.get("full_description", ""),) for job in unique_jobs]
     total_jobs = len(rows)
+
+    # Guard clauses for empty data
+    if total_jobs == 0:
+        return "# 📊 Job Market Analysis Report\n\n**No jobs found in database.**\n\nPlease scrape some job postings first before generating statistics."
+
+    # Optional LLM enrichment of descriptions
+    if use_llm:
+        llm = LLMGenerator()
+        enriched = []
+        for desc in (r[0] for r in rows):
+            try:
+                # Use the LLM to summarise or enrich the description
+                enriched_desc = llm.generate_summary(desc) if desc else ""
+                enriched.append(enriched_desc)
+            except Exception as e:
+                logger.error(f"LLM enrichment failed: {e}")
+                enriched.append(desc)
+        rows = [(e,) for e in enriched]
+
+    normalised = [_normalize(desc or "") for (desc,) in rows]
+    if not any(normalised) or all(len(n.strip()) == 0 for n in normalised):
+        return "# 📊 Job Market Analysis Report\n\n**No job descriptions found.**\n\nThe jobs in the database don't have descriptions to analyze."
+
+    # ---- Phrase counting ------------------------------------------------------
+    X_cnt = count_vectoriser.fit_transform(normalised)
+    raw_counts = Counter(
+        {
+            term: int(cnt)
+            for term, cnt in zip(
+                count_vectoriser.get_feature_names_out(), X_cnt.sum(axis=0).A1
+            )
+        }
+    )
+
+    # ---- TF‑IDF weighting ----------------------------------------------------
+    if use_tfidf:
+        X_tfidf = tfidf_vectoriser.fit_transform(normalised)
+        tfidf_scores = {
+            term: float(score)
+            for term, score in zip(
+                tfidf_vectoriser.get_feature_names_out(), X_tfidf.mean(axis=0).A1
+            )
+        }
+        weighted = Counter(
+            {
+                term: raw_counts[term] * tfidf_scores.get(term, 1.0)
+                for term in raw_counts
+            }
+        )
+    else:
+        weighted = raw_counts
+
+    # ---- Split into categories ------------------------------------------------
+    def _filter(counter: Counter, vocab: set) -> Counter:
+        return Counter({k: v for k, v in counter.items() if k in vocab})
+
+    def _filter_exclude(counter: Counter, vocab: set) -> Counter:
+        return Counter({k: v for k, v in counter.items() if k not in vocab})
+
+    tech_counter = _filter(weighted, VOCAB_TECH)
+    lang_counter = _filter(weighted, VOCAB_LANG)
+    soft_counter = _filter(weighted, VOCAB_SOFT)
+    hard_counter = _filter(weighted, VOCAB_HARD)
+    uncategorized_counter = _filter_exclude(weighted, VOCAB)
+
+    # ---- Create visualizations ------------------------------------------------
+    output_path = Path(output_dir)
+    output_path.mkdir(exist_ok=True)
+
+    # Color palettes (unchanged) ... (rest of function unchanged)
 
     # Check if we have any jobs
     if total_jobs == 0:

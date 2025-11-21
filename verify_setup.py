@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Verification script for LinkedIn Scraper Resume setup
-Checks Supabase PostgreSQL and Hugging Face configuration
+Checks Supabase configuration and dependencies
 """
 
 import os
@@ -193,9 +193,8 @@ def main():
     print_header("2. Environment Variables")
 
     env_vars = {
-        "SUPABASE_URL": ("Optional - Supabase project URL", False),
-        "SUPABASE_KEY": ("Optional - Supabase anon/public key", False),
-        "DATABASE_PATH": ("Optional - SQLite path (default: data/jobs.db)", False),
+        "SUPABASE_URL": ("Required - Supabase project URL", True),
+        "SUPABASE_KEY": ("Required - Supabase anon/public key", True),
         "GOOGLE_API_KEY": ("Required - Google Gemini API key", True),
         "HEADLESS": ("Optional - Browser headless mode", False),
         "PORT": ("Optional - Server port (default: 7860)", False),
@@ -219,17 +218,9 @@ def main():
 
     if db_config["can_connect"]:
         print_success("Database connection successful")
-        print_info(f"Database type: {db_config['db_type']}")
-
-        if db_config["use_supabase"]:
-            print_success("Using Supabase (PostgreSQL) ✨")
-            if db_config["has_supabase_sdk"]:
-                print_success("Supabase SDK installed")
-        else:
-            print_info("Using local SQLite database")
-            print_warning(
-                "For production on Hugging Face, configure SUPABASE_URL and SUPABASE_KEY"
-            )
+        print_success("Connected to Supabase (PostgreSQL) ✨")
+        if db_config["has_supabase_sdk"]:
+            print_success("Supabase SDK installed")
     else:
         print_error("Database connection failed")
         if "error" in db_config:
