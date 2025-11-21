@@ -211,9 +211,9 @@ generation_config={
 
 ## 📚 Documentation
 
-- [Quick Start Guide](QUICK_START.md) - Get started in 5 minutes
-- [API Guide](GEMINI_API_GUIDE.md) - Complete Gemini API setup
-- [Architecture](ARCHITECTURE.md) - System design and flow
+- [Quick Start Guide](docs/QUICK_START.md) - Get started in 5 minutes
+- [API Guide](docs/GEMINI_API_GUIDE.md) - Complete Gemini API setup
+- [Architecture](docs/ARCHITECTURE.md) - System design and flow
 - [Contributing](CONTRIBUTING.md) - How to contribute
 
 ## 🐛 Troubleshooting
