@@ -199,13 +199,25 @@ async def scrape_job(request: JobURLRequest, user = Depends(get_current_user)):
     try:
         db = Database()
         
-        logger.info(f"🔍 Scraping job anonymously: {request.url}")
+        # Normalize URL first
+        normalized_url = LinkedInScraper.normalize_linkedin_url(str(request.url))
+        
+        # Check if this job already exists in database
+        existing_job = db.check_job_exists(normalized_url)
+        if existing_job:
+            logger.info(f"⚠️ Job already exists in database: {existing_job['title']}")
+            raise HTTPException(
+                status_code=409,  # 409 Conflict
+                detail=f"This job is already in your database! '{existing_job['title']}' at {existing_job['company']} (scraped on {existing_job['scraped_at'][:10]}). Job ID: {existing_job['id']}"
+            )
+        
+        logger.info(f"🔍 Scraping job anonymously: {normalized_url}")
         
         # Create anonymous scraper (no authentication needed!)
         scraper = LinkedInScraper()
         
         # Scrape the job
-        result = await scraper.scrape_job_post(str(request.url))
+        result = await scraper.scrape_job_post(normalized_url)
         
         # Close browser
         await scraper.close()

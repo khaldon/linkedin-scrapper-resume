@@ -101,6 +101,20 @@ class Database:
         finally:
             conn.close()
 
+    def check_job_exists(self, url: str) -> Optional[Dict]:
+        """Check if a job with this URL already exists"""
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT id, title, company, scraped_at FROM jobs WHERE url = ?", (url,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return dict(row)
+        return None
+
     def get_job(self, job_id: int) -> Optional[Dict]:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()

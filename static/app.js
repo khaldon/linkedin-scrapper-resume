@@ -552,7 +552,7 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-laptop-code"></i> Top Technologies</h3>
-                <img src="/data/chart_technologies.png" alt="Technologies Chart">
+                <img src="/data/chart_technologies.png?ts=${Date.now()}" alt="Technologies Chart">
                 <ul style="margin-top: 1rem; list-style: none; padding: 0;">
                     ${stats.technologies.map(t => `
                         <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
@@ -569,7 +569,7 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-code"></i> Programming Languages</h3>
-                <img src="/data/chart_languages.png" alt="Languages Chart">
+                <img src="/data/chart_languages.png?ts=${Date.now()}" alt="Languages Chart">
                 <ul style="margin-top: 1rem; list-style: none; padding: 0;">
                     ${stats.languages.map(l => `
                         <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
