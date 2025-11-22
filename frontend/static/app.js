@@ -133,9 +133,16 @@ function updateUIForLoggedInUser(user) {
     const userName = document.getElementById('user-name');
     const userEmail = document.getElementById('user-email');
     const userDropdown = document.getElementById('user-dropdown');
+    const loginRequired = document.getElementById('login-required');
 
     if (loginBtn) loginBtn.classList.add('hidden');
     if (avatarContainer) avatarContainer.classList.remove('hidden');
+    if (loginRequired) loginRequired.classList.add('hidden');
+
+    // Activate default tab if none active
+    if (!document.querySelector('.tab-content.active')) {
+        switchTab('scrape');
+    }
 
     // Populate photo or initials
     if (user.photoURL) {
@@ -181,9 +188,20 @@ document.addEventListener('click', function (e) {
 function updateUIForLoggedOutUser() {
     const loginBtn = document.querySelector('.user-menu .btn-secondary');
     const avatarContainer = document.getElementById('user-avatar-container');
+    const loginRequired = document.getElementById('login-required');
 
     if (loginBtn) loginBtn.classList.remove('hidden');
     if (avatarContainer) avatarContainer.classList.add('hidden');
+    
+    // Show login required message and hide all tabs
+    if (loginRequired) loginRequired.classList.remove('hidden');
+    
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
 }
 
 // Google Sign In
@@ -297,6 +315,13 @@ const API_URL = getApiUrl();
 
 // Tab switching
 function switchTab(tabName) {
+    // Require login for all tabs
+    if (!currentUser) {
+        openAuthModal();
+        showAlert('auth-alert', 'info', 'Please login to access this feature');
+        return;
+    }
+
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });

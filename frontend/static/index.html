@@ -924,7 +924,7 @@
     <div class="container">
         <!-- Tabs -->
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('scrape')">
+            <button class="tab" onclick="switchTab('scrape')">
                 <i class="fas fa-search"></i> Scrape Job
             </button>
             <button class="tab" onclick="switchTab('generate')">
@@ -938,8 +938,20 @@
             </button>
         </div>
 
+        <!-- Login Required Message -->
+        <div id="login-required" class="card" style="text-align: center; padding: 3rem;">
+            <div class="card-icon" style="background: var(--gray-light); color: var(--gray);">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>Authentication Required</h2>
+            <p>Please login with your Google account to access the tools.</p>
+            <button class="btn btn-primary" onclick="openAuthModal()" style="margin-top: 1rem;">
+                <i class="fas fa-sign-in-alt"></i> Login Now
+            </button>
+        </div>
+
         <!-- Tab 1: Scrape Job -->
-        <div id="tab-scrape" class="tab-content active">
+        <div id="tab-scrape" class="tab-content">
             <div class="card">
                 <div class="card-icon">
                     <i class="fas fa-search"></i>
