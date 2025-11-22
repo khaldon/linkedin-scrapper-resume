@@ -321,6 +321,9 @@ def generate_job_stats(
     (e.g., summarised or expanded) before the statistical analysis.
     """
 
+    # Ensure output directory exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
     # ---- Load job descriptions via Database (Supabase only) -------------------
     from src.database import Database
     from src.llm_generator import LLMGenerator
