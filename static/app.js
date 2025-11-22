@@ -306,7 +306,7 @@ document.getElementById('scrape-form')?.addEventListener('submit', async (e) => 
         loadingDiv.classList.add('hidden');
 
         if (response.ok) {
-            showAlert('scrape-alert', 'success', `Job scraped successfully! Job ID: ${data.job_id}`);
+            showAlert('scrape-alert', 'success', `Job scraped successfully!`);
             await loadJobs();
 
             resultDiv.innerHTML = `
@@ -377,6 +377,14 @@ async function loadJobsForSelect() {
 // Generate CV Form
 document.getElementById('generate-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // Check auth first
+    const token = await getAuthToken();
+    if (!token) {
+        showAlert('generate-alert', 'info', 'Please login to generate a CV');
+        openAuthModal();
+        return;
+    }
 
     const jobId = document.getElementById('job-select').value;
     const cvFile = document.getElementById('cv-file').files[0];

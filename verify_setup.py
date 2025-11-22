@@ -154,7 +154,7 @@ def verify_file_structure() -> Dict[str, bool]:
         "src/llm_generator.py": "file",
         "api.py": "file",
         "Dockerfile": "file",
-        "requirements.txt": "file",
+        "pyproject.toml": "file",
         ".env.example": "file",
         "data": "dir",
         "logs": "dir",
@@ -196,21 +196,41 @@ def main():
         "SUPABASE_URL": ("Required - Supabase project URL", True),
         "SUPABASE_KEY": ("Required - Supabase anon/public key", True),
         "GOOGLE_API_KEY": ("Required - Google Gemini API key", True),
+        "FIREBASE_SERVICE_ACCOUNT_JSON": (
+            "Recommended - Firebase Admin SDK JSON content (for HF Spaces)",
+            False,
+        ),
+        "FIREBASE_CREDENTIALS_PATH": (
+            "Optional - Path to Firebase Admin SDK JSON file (for local dev)",
+            False,
+        ),
         "HEADLESS": ("Optional - Browser headless mode", False),
         "PORT": ("Optional - Server port (default: 7860)", False),
     }
 
     env_ok = True
+    firebase_creds_found = False
+
     for var, (description, required) in env_vars.items():
         exists, value = check_env_variable(var, required)
         if exists:
             print_success(f"{var}: {value}")
+            if "FIREBASE" in var:
+                firebase_creds_found = True
         else:
             if required:
                 print_error(f"{var}: NOT SET - {description}")
                 env_ok = False
             else:
                 print_info(f"{var}: Not set - {description}")
+
+    if not firebase_creds_found:
+        print_warning(
+            "No Firebase credentials found (FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_CREDENTIALS_PATH)."
+        )
+        print_warning(
+            "Authentication verification may fail unless running on GCP with default credentials."
+        )
 
     # 3. Check Database Configuration
     print_header("3. Database Configuration")

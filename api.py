@@ -1,21 +1,17 @@
 from fastapi import (
     FastAPI,
     HTTPException,
-    BackgroundTasks,
     UploadFile,
     File,
     Form,
     Depends,
-    Header,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, List
-import asyncio
-import os
+from typing import Optional
 import json
 from pathlib import Path
 import logging
@@ -31,7 +27,7 @@ from src.database import Database
 from src.llm_generator import LLMGenerator
 from src.stats_generator import generate_job_stats
 from src.pdf_converter import convert_md_to_pdf
-from src.firebase_auth import verify_firebase_token, firebase_auth_manager
+from src.firebase_auth import verify_firebase_token
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -127,7 +123,7 @@ async def startup_event():
     Path("static").mkdir(exist_ok=True)
 
     # Initialize database
-    db = Database()
+    Database()
     logger.info("Database initialized")
 
 
@@ -281,6 +277,10 @@ async def generate_cv(
 ):
     """Generate a tailored CV for a job using Google Gemini API (Server-side key)"""
     try:
+        logger.info(
+            f"Generating CV for user: {user.get('email')} (ID: {user.get('uid')})"
+        )
+
         # Read uploaded CV
         cv_content = await cv_file.read()
         current_cv = cv_content.decode("utf-8")
@@ -346,7 +346,7 @@ async def generate_stats(user=Depends(get_current_user)):
     """Generate fresh job market statistics"""
     try:
         # Generate stats with LLM insights
-        report = generate_job_stats(use_llm=True)
+        generate_job_stats(use_llm=True)
 
         with open("data/stats_data.json", "r") as f:
             stats_data = json.load(f)
