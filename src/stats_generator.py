@@ -378,8 +378,10 @@ def generate_job_stats(
                 enriched.append(desc)
         rows = [(e,) for e in enriched]
 
-    normalised = [_normalize(desc or "") for (desc,) in rows]
-    if not any(normalised) or all(len(n.strip()) == 0 for n in normalised):
+    # Filter out empty descriptions
+    valid_rows = [r for r in rows if r[0] and len(r[0].strip()) > 0]
+
+    if not valid_rows:
         empty_stats = {
             "total_jobs": total_jobs,
             "technologies": [],
@@ -392,6 +394,9 @@ def generate_job_stats(
         with open(f"{output_dir}/stats_data.json", "w") as f:
             json.dump(empty_stats, f, indent=2)
         return "# 📊 Job Market Analysis Report\n\n**No job descriptions found.**\n\nThe jobs in the database don't have descriptions to analyze."
+
+    rows = valid_rows
+    normalised = [_normalize(desc) for (desc,) in rows]
 
     # ---- Phrase counting ------------------------------------------------------
     X_cnt = count_vectoriser.fit_transform(normalised)
