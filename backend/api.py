@@ -208,7 +208,7 @@ async def scrape_job(request: JobURLRequest, user=Depends(get_current_user)):
             logger.info(f"⚠️ Job already exists in database: {existing_job['title']}")
             raise HTTPException(
                 status_code=409,  # 409 Conflict
-                detail=f"This job is already in your database! '{existing_job['title']}' at {existing_job['company']} (scraped on {existing_job['scraped_at'][:10]}). Job ID: {existing_job['id']}",
+                detail=f"This job is already in your database! '{existing_job['title']}' at {existing_job['company']} (scraped on {existing_job['scraped_at'][:10]}).",
             )
 
         logger.info(f"🔍 Scraping job anonymously: {normalized_url}")
