@@ -429,6 +429,19 @@ def generate_job_stats(
     hard_counter = _filter(weighted, VOCAB_HARD)
     uncategorized_counter = _filter_exclude(weighted, VOCAB)
 
+    # ---- Calculate job counts (unique jobs containing each term) --------------
+    # This counts how many jobs contain each skill, not total occurrences
+    job_counts = Counter()
+    for desc in normalised:
+        # Get unique terms in this job description
+        terms_in_job = set()
+        for term in raw_counts.keys():
+            if term in desc:
+                terms_in_job.add(term)
+        # Increment count for each unique term
+        for term in terms_in_job:
+            job_counts[term] += 1
+
     # ---- Create visualizations ------------------------------------------------
     output_path = Path(output_dir)
     output_path.mkdir(exist_ok=True)
@@ -582,9 +595,9 @@ def generate_job_stats(
                 {
                     "name": tech.title(),
                     "percentage": round(
-                        (raw_counts.get(tech, 0) / total_jobs) * 100, 1
+                        (job_counts.get(tech, 0) / total_jobs) * 100, 1
                     ),
-                    "count": raw_counts.get(tech, 0),
+                    "count": job_counts.get(tech, 0),
                 }
                 for tech, _ in tech_counter.most_common(10)
             ]
@@ -596,9 +609,9 @@ def generate_job_stats(
                 {
                     "name": lang.title(),
                     "percentage": round(
-                        (raw_counts.get(lang, 0) / total_jobs) * 100, 1
+                        (job_counts.get(lang, 0) / total_jobs) * 100, 1
                     ),
-                    "count": raw_counts.get(lang, 0),
+                    "count": job_counts.get(lang, 0),
                 }
                 for lang, _ in lang_counter.most_common(10)
             ]
@@ -610,9 +623,9 @@ def generate_job_stats(
                 {
                     "name": skill.title(),
                     "percentage": round(
-                        (raw_counts.get(skill, 0) / total_jobs) * 100, 1
+                        (job_counts.get(skill, 0) / total_jobs) * 100, 1
                     ),
-                    "count": raw_counts.get(skill, 0),
+                    "count": job_counts.get(skill, 0),
                 }
                 for skill, _ in soft_counter.most_common(10)
             ]
@@ -624,9 +637,9 @@ def generate_job_stats(
                 {
                     "name": skill.title(),
                     "percentage": round(
-                        (raw_counts.get(skill, 0) / total_jobs) * 100, 1
+                        (job_counts.get(skill, 0) / total_jobs) * 100, 1
                     ),
-                    "count": raw_counts.get(skill, 0),
+                    "count": job_counts.get(skill, 0),
                 }
                 for skill, _ in hard_counter.most_common(10)
             ]
