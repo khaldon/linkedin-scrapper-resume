@@ -125,6 +125,60 @@ Rewrite the current CV to be perfectly tailored for the job description above. F
 
 Generate the tailored CV now in Markdown format:"""
 
+    def generate_market_insights(self, stats_data: dict) -> str:
+        """
+        Generate AI-powered market insights based on job statistics.
+
+        Args:
+            stats_data: Dictionary containing job market statistics
+
+        Returns:
+            Market insights as a string
+        """
+        if not self.model:
+            logger.warning("Model not initialized. Skipping market insights.")
+            return "Market insights currently unavailable. Configure GOOGLE_API_KEY to enable AI-powered analysis."
+
+        # Create a summary of the stats for the prompt
+        total_jobs = stats_data.get("total_jobs", 0)
+        top_techs = [t["name"] for t in stats_data.get("technologies", [])[:3]]
+        top_langs = [lang["name"] for lang in stats_data.get("languages", [])[:3]]
+        top_soft = [s["name"] for s in stats_data.get("soft_skills", [])[:3]]
+        top_hard = [h["name"] for h in stats_data.get("hard_skills", [])[:3]]
+
+        prompt = f"""You are a career advisor and job market analyst. Based on the following job market data, provide actionable insights for job seekers.
+
+**JOB MARKET DATA:**
+- Total Jobs Analyzed: {total_jobs}
+- Top Technologies: {', '.join(top_techs) if top_techs else 'None'}
+- Top Programming Languages: {', '.join(top_langs) if top_langs else 'None'}
+- Top Soft Skills: {', '.join(top_soft) if top_soft else 'None'}
+- Top Technical Skills: {', '.join(top_hard) if top_hard else 'None'}
+
+**YOUR TASK:**
+Provide a concise, actionable market analysis (3-4 paragraphs) that:
+1. Highlights the most important trends
+2. Explains what these trends mean for job seekers
+3. Offers specific, practical advice for career development
+4. Identifies any emerging patterns or opportunities
+
+Keep your response professional, encouraging, and data-driven. Write in a friendly but authoritative tone."""
+
+        try:
+            logger.info("🧠 Generating market insights with LLM...")
+            response = self.model.generate_content(prompt)
+
+            if response and response.text:
+                logger.info("✅ Successfully generated market insights")
+                return response.text.strip()
+            else:
+                logger.warning("Empty response from API for market insights")
+                return "Market insights currently unavailable."
+
+        except Exception as e:
+            logger.error(f"❌ Error generating market insights: {str(e)}")
+            return "Market insights currently unavailable."
+
     def _simulate_response(self, job_description: str) -> str:
         """
         Simulates a response when API is not available.

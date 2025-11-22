@@ -367,20 +367,6 @@ def generate_job_stats(
             json.dump(empty_stats, f, indent=2)
         return "# 📊 Job Market Analysis Report\n\n**No jobs found in database.**\n\nPlease scrape some job postings first before generating statistics."
 
-    # Optional LLM enrichment of descriptions
-    if use_llm:
-        llm = LLMGenerator()
-        enriched = []
-        for desc in (r[0] for r in rows):
-            try:
-                # Use the LLM to summarise or enrich the description
-                enriched_desc = llm.generate_summary(desc) if desc else ""
-                enriched.append(enriched_desc)
-            except Exception as e:
-                logger.error(f"LLM enrichment failed: {e}")
-                enriched.append(desc)
-        rows = [(e,) for e in enriched]
-
     # Filter out empty descriptions
     valid_rows = [r for r in rows if r[0] and len(r[0].strip()) > 0]
 
