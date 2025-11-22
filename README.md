@@ -1,3 +1,14 @@
+---
+title: CareerBoost AI - LinkedIn Job Scraper & CV Tailor
+emoji: 🚀
+colorFrom: blue
+colorTo: purple
+sdk: docker
+sdk_version: "4.36.0"
+app_file: api.py
+pinned: false
+---
+
 # CareerBoost AI - LinkedIn Job Scraper & CV Tailor
 
 > 🚀 Scrape LinkedIn jobs anonymously, generate ATS-optimized CVs with AI, and analyze job market trends.
