@@ -511,6 +511,21 @@ async function generateStats() {
 function displayStats(stats, charts) {
     const contentDiv = document.getElementById('stats-content');
 
+    // Simple markdown to HTML converter for AI insights
+    function formatMarkdown(text) {
+        return text
+            // Bold: **text** or __text__
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/__(.+?)__/g, '<strong>$1</strong>')
+            // Italic: *text* or _text_
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/_(.+?)_/g, '<em>$1</em>')
+            // Code: `code`
+            .replace(/`(.+?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace;">$1</code>')
+            // Line breaks
+            .replace(/\n/g, '<br>');
+    }
+
     let html = `
         <div class="stats-grid">
             <div class="stat-card">
@@ -555,7 +570,7 @@ function displayStats(stats, charts) {
                         ">
                             <div style="display: flex; align-items: start; gap: 0.75rem;">
                                 <i class="fas fa-lightbulb" style="color: #ffd700; margin-top: 0.25rem; font-size: 1.1rem;"></i>
-                                <p style="margin: 0; color: rgba(255, 255, 255, 0.95);">${p.trim()}</p>
+                                <p style="margin: 0; color: rgba(255, 255, 255, 0.95);">${formatMarkdown(p.trim())}</p>
                             </div>
                         </div>
                     `).join('')}
