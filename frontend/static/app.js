@@ -110,23 +110,50 @@ async function syncUserWithBackend(idToken) {
 
 // Update UI for logged in user
 function updateUIForLoggedInUser(user) {
+    // Show avatar container and hide login button
     const loginBtn = document.querySelector('.user-menu .btn-secondary');
+    const avatarContainer = document.getElementById('user-avatar-container');
     const userAvatar = document.getElementById('user-avatar');
+    const userPhoto = document.getElementById('user-photo');
+    const userName = document.getElementById('user-name');
+    const userEmail = document.getElementById('user-email');
+    const userDropdown = document.getElementById('user-dropdown');
 
     if (loginBtn) loginBtn.classList.add('hidden');
-    if (userAvatar) {
-        userAvatar.classList.remove('hidden');
+    if (avatarContainer) avatarContainer.classList.remove('hidden');
 
-        if (user.photoURL) {
-            userAvatar.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-        } else {
-            const initial = (user.displayName || user.email || 'U')[0].toUpperCase();
-            userAvatar.innerHTML = `<span>${initial}</span>`;
-        }
+    // Populate photo or initials
+    if (user.photoURL) {
+        userPhoto.innerHTML = `<img src="${user.photoURL}" alt="${user.displayName || user.email}" />`;
+    } else {
+        const initial = (user.displayName || user.email || 'U')[0].toUpperCase();
+        userPhoto.innerHTML = `<span>${initial}</span>`;
+    }
 
-        userAvatar.title = user.displayName || user.email;
+    // Set name and email
+    userName.textContent = user.displayName || user.email || 'User';
+    userEmail.textContent = user.email || '';
+
+    // Ensure dropdown is hidden initially
+    if (userDropdown) userDropdown.classList.add('hidden');
+}
+
+// Toggle user dropdown visibility
+function toggleUserMenu(event) {
+    event.stopPropagation(); // Prevent click from bubbling to document
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
     }
 }
+
+// Hide dropdown when clicking outside
+document.addEventListener('click', function (e) {
+    const dropdown = document.getElementById('user-dropdown');
+    if (dropdown && !dropdown.contains(e.target) && e.target.id !== 'user-avatar') {
+        dropdown.classList.add('hidden');
+    }
+});
 
 // Update UI for logged out user
 function updateUIForLoggedOutUser() {
