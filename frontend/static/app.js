@@ -84,12 +84,21 @@ async function handleAuthStateChanged(user) {
 
 // Check local auth (fallback)
 function checkLocalAuth() {
+    console.log('Checking local auth...');
     const token = localStorage.getItem('firebaseToken');
     const user = localStorage.getItem('currentUser');
 
     if (token && user) {
-        currentUser = JSON.parse(user);
-        updateUIForLoggedInUser(currentUser);
+        console.log('Found local user session');
+        try {
+            currentUser = JSON.parse(user);
+            updateUIForLoggedInUser(currentUser);
+        } catch (e) {
+            console.error('Error parsing local user:', e);
+            localStorage.removeItem('currentUser');
+        }
+    } else {
+        console.log('No local user session found');
     }
 }
 
@@ -114,6 +123,8 @@ async function syncUserWithBackend(idToken) {
 
 // Update UI for logged in user
 function updateUIForLoggedInUser(user) {
+    console.log('Updating UI for logged in user:', user.email);
+    
     // Show avatar container and hide login button
     const loginBtn = document.querySelector('.user-menu .btn-secondary');
     const avatarContainer = document.getElementById('user-avatar-container');
@@ -144,7 +155,9 @@ function updateUIForLoggedInUser(user) {
 
 // Toggle user dropdown visibility
 function toggleUserMenu(event) {
-    event.stopPropagation(); // Prevent click from bubbling to document
+    if (event) {
+        event.stopPropagation(); // Prevent click from bubbling to document
+    }
     const dropdown = document.getElementById('user-dropdown');
     if (dropdown) {
         dropdown.classList.toggle('hidden');
@@ -154,7 +167,12 @@ function toggleUserMenu(event) {
 // Hide dropdown when clicking outside
 document.addEventListener('click', function (e) {
     const dropdown = document.getElementById('user-dropdown');
-    if (dropdown && !dropdown.contains(e.target) && e.target.id !== 'user-avatar') {
+    const avatar = document.getElementById('user-avatar');
+    
+    // Check if click is outside dropdown AND outside avatar
+    if (dropdown && !dropdown.classList.contains('hidden') && 
+        !dropdown.contains(e.target) && 
+        (!avatar || !avatar.contains(e.target))) {
         dropdown.classList.add('hidden');
     }
 });
