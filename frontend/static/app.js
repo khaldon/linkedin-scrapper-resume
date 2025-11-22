@@ -24,8 +24,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Handle redirect result (in case popup was blocked)
         try {
             const result = await auth.getRedirectResult();
-            if (result.user) {
+            if (result && result.user) {
                 console.log('Sign-in via redirect successful!');
+                // Manually update state to ensure UI reflects login immediately
+                await handleAuthStateChanged(result.user);
                 showAlert('auth-alert', 'success', 'Successfully signed in!');
                 closeAuthModal();
             }
@@ -35,6 +37,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.log('Current URL:', window.location.href);
                 console.log('Expected domain: localhost');
                 alert('⚠️ IMPORTANT: You must access this site via http://localhost:8080 (not 127.0.0.1)');
+            } else {
+                console.error('Redirect sign-in error:', error);
             }
         }
 
@@ -158,10 +162,10 @@ document.addEventListener('click', function (e) {
 // Update UI for logged out user
 function updateUIForLoggedOutUser() {
     const loginBtn = document.querySelector('.user-menu .btn-secondary');
-    const userAvatar = document.getElementById('user-avatar');
+    const avatarContainer = document.getElementById('user-avatar-container');
 
     if (loginBtn) loginBtn.classList.remove('hidden');
-    if (userAvatar) userAvatar.classList.add('hidden');
+    if (avatarContainer) avatarContainer.classList.add('hidden');
 }
 
 // Google Sign In
