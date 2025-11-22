@@ -514,9 +514,9 @@ function displayStats(stats, charts) {
     // Simple markdown to HTML converter for AI insights
     function formatMarkdown(text) {
         return text
-            // Bold: **text** or __text__
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/__(.+?)__/g, '<strong>$1</strong>')
+            // Bold: **text** or __text__ - with highlighting
+            .replace(/\*\*(.+?)\*\*/g, '<strong style="color: #ffd700; background: rgba(255, 215, 0, 0.15); padding: 2px 6px; border-radius: 4px;">$1</strong>')
+            .replace(/__(.+?)__/g, '<strong style="color: #ffd700; background: rgba(255, 215, 0, 0.15); padding: 2px 6px; border-radius: 4px;">$1</strong>')
             // Italic: *text* or _text_
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
             .replace(/_(.+?)_/g, '<em>$1</em>')
@@ -524,6 +524,55 @@ function displayStats(stats, charts) {
             .replace(/`(.+?)`/g, '<code style="background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace;">$1</code>')
             // Line breaks
             .replace(/\n/g, '<br>');
+    }
+
+    // Helper to create Plotly chart
+    function createPlotlyChart(elementId, data, title, color) {
+        if (!data.labels || data.labels.length === 0) return;
+
+        const trace = {
+            type: 'bar',
+            x: data.values,
+            y: data.labels,
+            orientation: 'h',
+            marker: {
+                color: color,
+                line: {
+                    color: color.replace('0.8', '1'),
+                    width: 2
+                }
+            },
+            text: data.values.map(v => v.toFixed(2)),
+            textposition: 'outside',
+            hovertemplate: '<b>%{y}</b><br>Score: %{x:.2f}<extra></extra>'
+        };
+
+        const layout = {
+            title: {
+                text: title,
+                font: { size: 18, weight: 700, color: '#2d3436' }
+            },
+            xaxis: {
+                title: 'Relevance Score',
+                showgrid: true,
+                gridcolor: '#e2e8f0'
+            },
+            yaxis: {
+                autorange: 'reversed',
+                showgrid: false
+            },
+            margin: { l: 150, r: 50, t: 60, b: 60 },
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: 'white',
+            height: Math.max(400, data.labels.length * 40)
+        };
+
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+
+        Plotly.newPlot(elementId, [trace], layout, config);
     }
 
     let html = `
@@ -541,13 +590,13 @@ function displayStats(stats, charts) {
                 <div class="stat-label">Languages Found</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">${stats.soft_skills.length}</div>
-                <div class="stat-label">Soft Skills</div>
+                <div class="stat-number">${stats.soft_skills.length + stats.hard_skills.length}</div>
+                <div class="stat-label">Skills Identified</div>
             </div>
         </div>
     `;
 
-    // AI Market Analysis - formatted as cards
+    // AI Market Analysis - formatted as cards with highlighted keywords
     if (stats.market_summary && stats.market_summary !== "Market insights currently unavailable.") {
         // Split into paragraphs and format nicely
         const paragraphs = stats.market_summary.split('\n\n').filter(p => p.trim());
@@ -579,14 +628,14 @@ function displayStats(stats, charts) {
         `;
     }
 
+    // Technologies Chart
     if (stats.technologies.length > 0) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-laptop-code"></i> Top Technologies</h3>
-                <img src="${API_URL}/data/chart_technologies.png?ts=${Date.now()}" alt="Technologies Chart" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div id="chart-technologies" style="width: 100%;"></div>
                 <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
-                    ${stats.technologies.map((t, i) => {
-                        const jobCount = Math.round((t.percentage / 100) * stats.total_jobs);
+                    ${stats.technologies.slice(0, 5).map((t, i) => {
                         const colors = ['#667eea', '#764ba2', '#f093fb'];
                         const color = colors[i % colors.length];
                         return `
@@ -605,7 +654,7 @@ function displayStats(stats, charts) {
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${t.percentage}%</div>
-                                <div style="font-size: 0.85rem; color: var(--gray);">${jobCount} of ${stats.total_jobs} jobs</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Found in ${t.count} job${t.count !== 1 ? 's' : ''}</div>
                             </div>
                         </div>
                     `}).join('')}
@@ -614,14 +663,14 @@ function displayStats(stats, charts) {
         `;
     }
 
+    // Languages Chart
     if (stats.languages.length > 0) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-code"></i> Programming Languages</h3>
-                <img src="${API_URL}/data/chart_languages.png?ts=${Date.now()}" alt="Languages Chart" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div id="chart-languages" style="width: 100%;"></div>
                 <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
-                    ${stats.languages.map((l, i) => {
-                        const jobCount = Math.round((l.percentage / 100) * stats.total_jobs);
+                    ${stats.languages.slice(0, 5).map((l, i) => {
                         const colors = ['#4ecdc4', '#44a08d', '#45b7d1'];
                         const color = colors[i % colors.length];
                         return `
@@ -640,7 +689,7 @@ function displayStats(stats, charts) {
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${l.percentage}%</div>
-                                <div style="font-size: 0.85rem; color: var(--gray);">${jobCount} of ${stats.total_jobs} jobs</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">Found in ${l.count} job${l.count !== 1 ? 's' : ''}</div>
                             </div>
                         </div>
                     `}).join('')}
@@ -649,6 +698,61 @@ function displayStats(stats, charts) {
         `;
     }
 
+    // Skills Section - Split into Soft and Hard Skills
+    if (stats.soft_skills.length > 0 || stats.hard_skills.length > 0) {
+        html += `
+            <div class="chart-container">
+                <h3><i class="fas fa-brain"></i> Skills Analysis</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 1.5rem;">
+        `;
+
+        // Soft Skills
+        if (stats.soft_skills.length > 0) {
+            html += `
+                <div>
+                    <h4 style="color: #e17055; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-users"></i> Soft Skills
+                    </h4>
+                    <div id="chart-soft-skills" style="width: 100%; height: 300px;"></div>
+                    <div style="margin-top: 1rem; display: grid; gap: 0.5rem;">
+                        ${stats.soft_skills.slice(0, 3).map((s, i) => `
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #fff5f5; border-radius: 6px;">
+                                <span style="font-weight: 500;">${s.name}</span>
+                                <span style="color: #e17055; font-weight: 600;">${s.count} job${s.count !== 1 ? 's' : ''}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Hard Skills
+        if (stats.hard_skills.length > 0) {
+            html += `
+                <div>
+                    <h4 style="color: #00b894; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-cogs"></i> Hard Skills
+                    </h4>
+                    <div id="chart-hard-skills" style="width: 100%; height: 300px;"></div>
+                    <div style="margin-top: 1rem; display: grid; gap: 0.5rem;">
+                        ${stats.hard_skills.slice(0, 3).map((h, i) => `
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f0fff4; border-radius: 6px;">
+                                <span style="font-weight: 500;">${h.name}</span>
+                                <span style="color: #00b894; font-weight: 600;">${h.count} job${h.count !== 1 ? 's' : ''}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
+                </div>
+            </div>
+        `;
+    }
+
+    // Recommendations
     if (stats.recommendations && stats.recommendations.length > 0) {
         html += `
             <div class="chart-container" style="background: linear-gradient(to right, #ffeaa7, #fdcb6e); border: none;">
@@ -686,6 +790,24 @@ function displayStats(stats, charts) {
     }
 
     contentDiv.innerHTML = html;
+
+    // Create Plotly charts after DOM is updated
+    setTimeout(() => {
+        if (stats.chart_data) {
+            if (stats.chart_data.technologies.labels.length > 0) {
+                createPlotlyChart('chart-technologies', stats.chart_data.technologies, 'Top Technologies', 'rgba(102, 126, 234, 0.8)');
+            }
+            if (stats.chart_data.languages.labels.length > 0) {
+                createPlotlyChart('chart-languages', stats.chart_data.languages, 'Programming Languages', 'rgba(78, 205, 196, 0.8)');
+            }
+            if (stats.chart_data.soft_skills.labels.length > 0) {
+                createPlotlyChart('chart-soft-skills', stats.chart_data.soft_skills, '', 'rgba(225, 112, 85, 0.8)');
+            }
+            if (stats.chart_data.hard_skills.labels.length > 0) {
+                createPlotlyChart('chart-hard-skills', stats.chart_data.hard_skills, '', 'rgba(0, 184, 148, 0.8)');
+            }
+        }
+    }, 100);
 }
 
 // Load jobs list

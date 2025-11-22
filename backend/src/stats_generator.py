@@ -584,8 +584,9 @@ def generate_job_stats(
                     "percentage": round(
                         (raw_counts.get(tech, 0) / total_jobs) * 100, 1
                     ),
+                    "count": raw_counts.get(tech, 0),
                 }
-                for tech, _ in tech_counter.most_common(3)
+                for tech, _ in tech_counter.most_common(10)
             ]
             if tech_counter
             else []
@@ -597,8 +598,9 @@ def generate_job_stats(
                     "percentage": round(
                         (raw_counts.get(lang, 0) / total_jobs) * 100, 1
                     ),
+                    "count": raw_counts.get(lang, 0),
                 }
-                for lang, _ in lang_counter.most_common(3)
+                for lang, _ in lang_counter.most_common(10)
             ]
             if lang_counter
             else []
@@ -610,8 +612,9 @@ def generate_job_stats(
                     "percentage": round(
                         (raw_counts.get(skill, 0) / total_jobs) * 100, 1
                     ),
+                    "count": raw_counts.get(skill, 0),
                 }
-                for skill, _ in soft_counter.most_common(3)
+                for skill, _ in soft_counter.most_common(10)
             ]
             if soft_counter
             else []
@@ -623,13 +626,65 @@ def generate_job_stats(
                     "percentage": round(
                         (raw_counts.get(skill, 0) / total_jobs) * 100, 1
                     ),
+                    "count": raw_counts.get(skill, 0),
                 }
-                for skill, _ in hard_counter.most_common(3)
+                for skill, _ in hard_counter.most_common(10)
             ]
             if hard_counter
             else []
         ),
         "recommendations": [],
+        # Chart data for Plotly
+        "chart_data": {
+            "technologies": {
+                "labels": (
+                    [tech.title() for tech, _ in tech_counter.most_common(10)]
+                    if tech_counter
+                    else []
+                ),
+                "values": (
+                    [float(score) for _, score in tech_counter.most_common(10)]
+                    if tech_counter
+                    else []
+                ),
+            },
+            "languages": {
+                "labels": (
+                    [lang.title() for lang, _ in lang_counter.most_common(10)]
+                    if lang_counter
+                    else []
+                ),
+                "values": (
+                    [float(score) for _, score in lang_counter.most_common(10)]
+                    if lang_counter
+                    else []
+                ),
+            },
+            "soft_skills": {
+                "labels": (
+                    [skill.title() for skill, _ in soft_counter.most_common(10)]
+                    if soft_counter
+                    else []
+                ),
+                "values": (
+                    [float(score) for _, score in soft_counter.most_common(10)]
+                    if soft_counter
+                    else []
+                ),
+            },
+            "hard_skills": {
+                "labels": (
+                    [skill.title() for skill, _ in hard_counter.most_common(10)]
+                    if hard_counter
+                    else []
+                ),
+                "values": (
+                    [float(score) for _, score in hard_counter.most_common(10)]
+                    if hard_counter
+                    else []
+                ),
+            },
+        },
     }
 
     # Add recommendations
