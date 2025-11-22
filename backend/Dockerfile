@@ -34,7 +34,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 # Copy project definition
-COPY backend/pyproject.toml .
+COPY pyproject.toml .
 
 # Install dependencies using uv
 RUN uv pip install --system -r pyproject.toml
@@ -43,7 +43,7 @@ RUN uv pip install --system -r pyproject.toml
 RUN python -m spacy download en_core_web_sm
 
 # Copy application code
-COPY backend/ .
+COPY . .
 
 # Create necessary directories and set permissions
 RUN mkdir -p data logs static && \

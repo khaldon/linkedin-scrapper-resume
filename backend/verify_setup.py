@@ -158,7 +158,9 @@ def verify_file_structure() -> Dict[str, bool]:
         ".env.example": "file",
         "data": "dir",
         "logs": "dir",
-        "static": "dir",
+        "../frontend": "dir",
+        "../frontend/static": "dir",
+        "../frontend/view_report.html": "file",
     }
 
     results = {}

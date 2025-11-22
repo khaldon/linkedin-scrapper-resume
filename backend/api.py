@@ -8,7 +8,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
@@ -48,8 +48,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files (only data for generated content)
 app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Security
@@ -120,7 +119,7 @@ async def startup_event():
     # Create necessary directories
     Path("data").mkdir(exist_ok=True)
     Path("logs").mkdir(exist_ok=True)
-    Path("static").mkdir(exist_ok=True)
+    # Path("static").mkdir(exist_ok=True) # Static no longer needed on backend
 
     # Initialize database
     Database()
@@ -136,38 +135,17 @@ async def shutdown_event():
 @app.get("/")
 async def root():
     """Root endpoint - returns API info"""
-    try:
-        # Try to serve the HTML file
-        html_path = Path("static/index.html")
-        if html_path.exists():
-            return FileResponse("static/index.html")
-        else:
-            # Fallback if HTML doesn't exist
-            return {
-                "message": "LinkedIn Job Scraper & CV Tailor API",
-                "version": "2.0.0",
-                "endpoints": {
-                    "docs": "/docs",
-                    "health": "/api/health",
-                    "scrape": "/api/scrape",
-                    "jobs": "/api/jobs",
-                },
-                "note": "Visit /docs for full API documentation",
-            }
-    except Exception as e:
-        logger.error(f"Error serving root: {e}")
-        return {
-            "message": "LinkedIn Job Scraper & CV Tailor API",
-            "version": "2.0.0",
-            "docs_url": "/docs",
-            "error": str(e),
-        }
-
-
-@app.get("/favicon.ico")
-async def favicon():
-    """Serve favicon"""
-    return JSONResponse(content={"message": "No favicon"}, status_code=204)
+    return {
+        "message": "LinkedIn Job Scraper & CV Tailor API",
+        "version": "2.0.0",
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/api/health",
+            "scrape": "/api/scrape",
+            "jobs": "/api/jobs",
+        },
+        "note": "Frontend is hosted separately on Firebase",
+    }
 
 
 @app.get("/api/health")
