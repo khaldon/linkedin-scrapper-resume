@@ -330,10 +330,10 @@ def generate_job_stats(
 
     db = Database()
     # Fetch all jobs (paginated)
-    all_jobs = db.get_all_jobs(limit=1000, offset=0)
+    all_jobs = db.get_all_jobs(limit=1000, offset=0, include_description=True)
     offset = 1000
     while True:
-        more_jobs = db.get_all_jobs(limit=1000, offset=offset)
+        more_jobs = db.get_all_jobs(limit=1000, offset=offset, include_description=True)
         if not more_jobs:
             break
         all_jobs.extend(more_jobs)
@@ -707,7 +707,7 @@ def generate_job_stats(
         top_tech = tech_counter.most_common(3)
         report.append("### 💻 Key Technology Trends")
         report.append("")
-        report.append(f"The top 3 most demanded technologies are:")
+        report.append("The top 3 most demanded technologies are:")
         for i, (tech, score) in enumerate(top_tech, 1):
             percentage = (raw_counts.get(tech, 0) / total_jobs) * 100
             report.append(

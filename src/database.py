@@ -151,12 +151,18 @@ class Database:
             logger.error(f"Error saving CV to Supabase: {e}")
             raise
 
-    def get_all_jobs(self, limit: int = 10, offset: int = 0) -> List[Dict]:
+    def get_all_jobs(
+        self, limit: int = 10, offset: int = 0, include_description: bool = False
+    ) -> List[Dict]:
         """Get all jobs with pagination"""
         try:
+            select_query = "id, url, title, company, poster, scraped_at"
+            if include_description:
+                select_query += ", full_description"
+
             result = (
                 self.supabase.table("jobs")
-                .select("id, url, title, company, poster, scraped_at")
+                .select(select_query)
                 .order("scraped_at", desc=True)
                 .range(offset, offset + limit - 1)
                 .execute()
