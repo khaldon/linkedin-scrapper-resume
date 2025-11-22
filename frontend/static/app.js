@@ -511,6 +511,16 @@ async function generateStats() {
 function displayStats(stats, charts) {
     const contentDiv = document.getElementById('stats-content');
 
+    // Check if Plotly is loaded
+    if (typeof Plotly === 'undefined') {
+        console.error('Plotly is not loaded!');
+        contentDiv.innerHTML = '<div class="alert alert-error">Chart library not loaded. Please refresh the page.</div>';
+        return;
+    }
+
+    console.log('Stats data received:', stats);
+    console.log('Chart data:', stats.chart_data);
+
     // Simple markdown to HTML converter for AI insights
     function formatMarkdown(text) {
         return text
@@ -528,7 +538,19 @@ function displayStats(stats, charts) {
 
     // Helper to create Plotly chart
     function createPlotlyChart(elementId, data, title, color) {
-        if (!data.labels || data.labels.length === 0) return;
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.error(`Element ${elementId} not found`);
+            return;
+        }
+
+        if (!data || !data.labels || data.labels.length === 0) {
+            console.log(`No data for ${elementId}`);
+            element.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No data available</p>';
+            return;
+        }
+
+        console.log(`Creating chart for ${elementId}:`, data);
 
         const trace = {
             type: 'bar',
@@ -561,10 +583,10 @@ function displayStats(stats, charts) {
                 autorange: 'reversed',
                 showgrid: false
             },
-            margin: { l: 150, r: 50, t: 60, b: 60 },
+            margin: { l: 150, r: 50, t: title ? 60 : 20, b: 60 },
             plot_bgcolor: '#f8f9fa',
             paper_bgcolor: 'white',
-            height: Math.max(400, data.labels.length * 40)
+            height: Math.max(300, data.labels.length * 40)
         };
 
         const config = {
@@ -572,7 +594,12 @@ function displayStats(stats, charts) {
             displayModeBar: false
         };
 
-        Plotly.newPlot(elementId, [trace], layout, config);
+        try {
+            Plotly.newPlot(elementId, [trace], layout, config);
+            console.log(`Chart created successfully for ${elementId}`);
+        } catch (error) {
+            console.error(`Error creating chart for ${elementId}:`, error);
+        }
     }
 
     let html = `
@@ -633,7 +660,7 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-laptop-code"></i> Top Technologies</h3>
-                <div id="chart-technologies" style="width: 100%;"></div>
+                <div id="chart-technologies" style="width: 100%; min-height: 400px;"></div>
                 <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
                     ${stats.technologies.slice(0, 5).map((t, i) => {
                         const colors = ['#667eea', '#764ba2', '#f093fb'];
@@ -668,7 +695,7 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-code"></i> Programming Languages</h3>
-                <div id="chart-languages" style="width: 100%;"></div>
+                <div id="chart-languages" style="width: 100%; min-height: 400px;"></div>
                 <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
                     ${stats.languages.slice(0, 5).map((l, i) => {
                         const colors = ['#4ecdc4', '#44a08d', '#45b7d1'];
@@ -713,7 +740,7 @@ function displayStats(stats, charts) {
                     <h4 style="color: #e17055; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-users"></i> Soft Skills
                     </h4>
-                    <div id="chart-soft-skills" style="width: 100%; height: 300px;"></div>
+                    <div id="chart-soft-skills" style="width: 100%; min-height: 300px;"></div>
                     <div style="margin-top: 1rem; display: grid; gap: 0.5rem;">
                         ${stats.soft_skills.slice(0, 3).map((s, i) => `
                             <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #fff5f5; border-radius: 6px;">
@@ -733,7 +760,7 @@ function displayStats(stats, charts) {
                     <h4 style="color: #00b894; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-cogs"></i> Hard Skills
                     </h4>
-                    <div id="chart-hard-skills" style="width: 100%; height: 300px;"></div>
+                    <div id="chart-hard-skills" style="width: 100%; min-height: 300px;"></div>
                     <div style="margin-top: 1rem; display: grid; gap: 0.5rem;">
                         ${stats.hard_skills.slice(0, 3).map((h, i) => `
                             <div style="display: flex; justify-content: space-between; padding: 0.5rem; background: #f0fff4; border-radius: 6px;">
@@ -793,21 +820,26 @@ function displayStats(stats, charts) {
 
     // Create Plotly charts after DOM is updated
     setTimeout(() => {
+        console.log('Creating Plotly charts...');
         if (stats.chart_data) {
-            if (stats.chart_data.technologies.labels.length > 0) {
+            console.log('Chart data exists:', stats.chart_data);
+            
+            if (stats.chart_data.technologies && stats.chart_data.technologies.labels.length > 0) {
                 createPlotlyChart('chart-technologies', stats.chart_data.technologies, 'Top Technologies', 'rgba(102, 126, 234, 0.8)');
             }
-            if (stats.chart_data.languages.labels.length > 0) {
+            if (stats.chart_data.languages && stats.chart_data.languages.labels.length > 0) {
                 createPlotlyChart('chart-languages', stats.chart_data.languages, 'Programming Languages', 'rgba(78, 205, 196, 0.8)');
             }
-            if (stats.chart_data.soft_skills.labels.length > 0) {
+            if (stats.chart_data.soft_skills && stats.chart_data.soft_skills.labels.length > 0) {
                 createPlotlyChart('chart-soft-skills', stats.chart_data.soft_skills, '', 'rgba(225, 112, 85, 0.8)');
             }
-            if (stats.chart_data.hard_skills.labels.length > 0) {
+            if (stats.chart_data.hard_skills && stats.chart_data.hard_skills.labels.length > 0) {
                 createPlotlyChart('chart-hard-skills', stats.chart_data.hard_skills, '', 'rgba(0, 184, 148, 0.8)');
             }
+        } else {
+            console.error('No chart_data in stats!');
         }
-    }, 100);
+    }, 200);
 }
 
 // Load jobs list
