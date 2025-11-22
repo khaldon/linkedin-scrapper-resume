@@ -532,12 +532,33 @@ function displayStats(stats, charts) {
         </div>
     `;
 
-    if (stats.market_summary) {
+    // AI Market Analysis - formatted as cards
+    if (stats.market_summary && stats.market_summary !== "Market insights currently unavailable.") {
+        // Split into paragraphs and format nicely
+        const paragraphs = stats.market_summary.split('\n\n').filter(p => p.trim());
+        
         html += `
-            <div class="chart-container" style="background: linear-gradient(to right, #f8f9fa, #e9ecef); border-left: 5px solid var(--primary);">
-                <h3><i class="fas fa-robot"></i> AI Market Analysis</h3>
-                <div style="white-space: pre-wrap; line-height: 1.6; color: var(--dark);">
-                    ${stats.market_summary}
+            <div class="chart-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+                <h3 style="color: white; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <i class="fas fa-robot" style="font-size: 1.5rem;"></i>
+                    <span>AI Market Analysis</span>
+                </h3>
+                <div style="display: grid; gap: 1rem;">
+                    ${paragraphs.map((p, i) => `
+                        <div style="
+                            background: rgba(255, 255, 255, 0.15); 
+                            backdrop-filter: blur(10px);
+                            padding: 1.25rem; 
+                            border-radius: 12px;
+                            border: 1px solid rgba(255, 255, 255, 0.2);
+                            line-height: 1.7;
+                        ">
+                            <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                <i class="fas fa-lightbulb" style="color: #ffd700; margin-top: 0.25rem; font-size: 1.1rem;"></i>
+                                <p style="margin: 0; color: rgba(255, 255, 255, 0.95);">${p.trim()}</p>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         `;
@@ -547,15 +568,33 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-laptop-code"></i> Top Technologies</h3>
-                <img src="${API_URL}/data/chart_technologies.png?ts=${Date.now()}" alt="Technologies Chart">
-                <ul style="margin-top: 1rem; list-style: none; padding: 0;">
-                    ${stats.technologies.map(t => `
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            <strong>${t.name}</strong>: ${t.percentage}% of jobs
-                        </li>
-                    `).join('')}
-                </ul>
+                <img src="${API_URL}/data/chart_technologies.png?ts=${Date.now()}" alt="Technologies Chart" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
+                    ${stats.technologies.map((t, i) => {
+                        const jobCount = Math.round((t.percentage / 100) * stats.total_jobs);
+                        const colors = ['#667eea', '#764ba2', '#f093fb'];
+                        const color = colors[i % colors.length];
+                        return `
+                        <div style="
+                            background: linear-gradient(to right, ${color}15, transparent);
+                            border-left: 4px solid ${color};
+                            padding: 1rem;
+                            border-radius: 8px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-check-circle" style="color: ${color}; font-size: 1.2rem;"></i>
+                                <strong style="font-size: 1.1rem;">${t.name}</strong>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${t.percentage}%</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">${jobCount} of ${stats.total_jobs} jobs</div>
+                            </div>
+                        </div>
+                    `}).join('')}
+                </div>
             </div>
         `;
     }
@@ -564,31 +603,69 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-code"></i> Programming Languages</h3>
-                <img src="${API_URL}/data/chart_languages.png?ts=${Date.now()}" alt="Languages Chart">
-                <ul style="margin-top: 1rem; list-style: none; padding: 0;">
-                    ${stats.languages.map(l => `
-                        <li style="padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-check-circle" style="color: var(--success);"></i>
-                            <strong>${l.name}</strong>: ${l.percentage}% of jobs
-                        </li>
-                    `).join('')}
-                </ul>
+                <img src="${API_URL}/data/chart_languages.png?ts=${Date.now()}" alt="Languages Chart" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
+                    ${stats.languages.map((l, i) => {
+                        const jobCount = Math.round((l.percentage / 100) * stats.total_jobs);
+                        const colors = ['#4ecdc4', '#44a08d', '#45b7d1'];
+                        const color = colors[i % colors.length];
+                        return `
+                        <div style="
+                            background: linear-gradient(to right, ${color}15, transparent);
+                            border-left: 4px solid ${color};
+                            padding: 1rem;
+                            border-radius: 8px;
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                        ">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-check-circle" style="color: ${color}; font-size: 1.2rem;"></i>
+                                <strong style="font-size: 1.1rem;">${l.name}</strong>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${l.percentage}%</div>
+                                <div style="font-size: 0.85rem; color: var(--gray);">${jobCount} of ${stats.total_jobs} jobs</div>
+                            </div>
+                        </div>
+                    `}).join('')}
+                </div>
             </div>
         `;
     }
 
     if (stats.recommendations && stats.recommendations.length > 0) {
         html += `
-            <div class="chart-container">
-                <h3><i class="fas fa-lightbulb"></i> Recommendations</h3>
-                <ul style="list-style: none; padding: 0;">
-                    ${stats.recommendations.map(r => `
-                        <li style="padding: 0.75rem 0; display: flex; align-items: start; gap: 0.75rem;">
-                            <i class="fas fa-star" style="color: var(--warning); margin-top: 0.25rem;"></i>
-                            <span>${r}</span>
-                        </li>
+            <div class="chart-container" style="background: linear-gradient(to right, #ffeaa7, #fdcb6e); border: none;">
+                <h3 style="color: #2d3436;"><i class="fas fa-lightbulb"></i> Recommendations</h3>
+                <div style="display: grid; gap: 1rem;">
+                    ${stats.recommendations.map((r, i) => `
+                        <div style="
+                            background: white;
+                            padding: 1.25rem;
+                            border-radius: 12px;
+                            display: flex;
+                            align-items: start;
+                            gap: 1rem;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        ">
+                            <div style="
+                                background: linear-gradient(135deg, #ffd700, #ffed4e);
+                                width: 32px;
+                                height: 32px;
+                                border-radius: 50%;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                flex-shrink: 0;
+                                box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+                            ">
+                                <i class="fas fa-star" style="color: white; font-size: 0.9rem;"></i>
+                            </div>
+                            <span style="color: #2d3436; line-height: 1.6; font-size: 1.05rem;">${r}</span>
+                        </div>
                     `).join('')}
-                </ul>
+                </div>
             </div>
         `;
     }
