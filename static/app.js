@@ -475,10 +475,27 @@ async function generateStats() {
         const data = await response.json();
 
         loadingDiv.classList.add('hidden');
-        displayStats(data.stats, data.charts);
+
+        if (response.ok) {
+            displayStats(data.stats, data.charts);
+        } else {
+            console.error('Stats generation failed:', data);
+            contentDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Failed to generate stats: ${data.detail || 'Unknown error'}
+                </div>
+            `;
+        }
     } catch (error) {
         loadingDiv.classList.add('hidden');
         console.error('Error generating stats:', error);
+        contentDiv.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                Network error: ${error.message}. Check console for details.
+            </div>
+        `;
     }
 }
 
