@@ -511,15 +511,13 @@ async function generateStats() {
 function displayStats(stats, charts) {
     const contentDiv = document.getElementById('stats-content');
 
-    // Check if Plotly is loaded
-    if (typeof Plotly === 'undefined') {
-        console.error('Plotly is not loaded!');
-        contentDiv.innerHTML = '<div class="alert alert-error">Chart library not loaded. Please refresh the page.</div>';
-        return;
-    }
-
     console.log('Stats data received:', stats);
-    console.log('Chart data:', stats.chart_data);
+
+    // Check if Plotly is available
+    const usePlotly = typeof Plotly !== 'undefined';
+    if (!usePlotly) {
+        console.warn('Plotly not loaded, using CSS charts as fallback');
+    }
 
     // Simple markdown to HTML converter for AI insights
     function formatMarkdown(text) {
@@ -538,71 +536,131 @@ function displayStats(stats, charts) {
 
     // Helper to create Plotly chart
     function createPlotlyChart(elementId, data, title, color) {
+        if (!usePlotly) return false;
+
         const element = document.getElementById(elementId);
         if (!element) {
             console.error(`Element ${elementId} not found`);
-            return;
+            return false;
         }
 
         if (!data || !data.labels || data.labels.length === 0) {
             console.log(`No data for ${elementId}`);
-            element.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 2rem;">No data available</p>';
-            return;
+            return false;
         }
 
-        console.log(`Creating chart for ${elementId}:`, data);
-
-        const trace = {
-            type: 'bar',
-            x: data.values,
-            y: data.labels,
-            orientation: 'h',
-            marker: {
-                color: color,
-                line: {
-                    color: color.replace('0.8', '1'),
-                    width: 2
-                }
-            },
-            text: data.values.map(v => v.toFixed(2)),
-            textposition: 'outside',
-            hovertemplate: '<b>%{y}</b><br>Score: %{x:.2f}<extra></extra>'
-        };
-
-        const layout = {
-            title: {
-                text: title,
-                font: { size: 18, weight: 700, color: '#2d3436' }
-            },
-            xaxis: {
-                title: 'Relevance Score',
-                showgrid: true,
-                gridcolor: '#e2e8f0'
-            },
-            yaxis: {
-                autorange: 'reversed',
-                showgrid: false
-            },
-            margin: { l: 150, r: 50, t: title ? 60 : 20, b: 60 },
-            plot_bgcolor: '#f8f9fa',
-            paper_bgcolor: 'white',
-            height: Math.max(300, data.labels.length * 40)
-        };
-
-        const config = {
-            responsive: true,
-            displayModeBar: false
-        };
-
         try {
+            const trace = {
+                type: 'bar',
+                x: data.values,
+                y: data.labels,
+                orientation: 'h',
+                marker: {
+                    color: color,
+                    line: {
+                        color: color.replace('0.8', '1'),
+                        width: 2
+                    }
+                },
+                text: data.values.map(v => v.toFixed(2)),
+                textposition: 'outside',
+                hovertemplate: '<b>%{y}</b><br>Score: %{x:.2f}<extra></extra>'
+            };
+
+            const layout = {
+                title: {
+                    text: title,
+                    font: { size: 18, weight: 700, color: '#2d3436' }
+                },
+                xaxis: {
+                    title: 'Relevance Score',
+                    showgrid: true,
+                    gridcolor: '#e2e8f0'
+                },
+                yaxis: {
+                    autorange: 'reversed',
+                    showgrid: false
+                },
+                margin: { l: 150, r: 50, t: title ? 60 : 20, b: 60 },
+                plot_bgcolor: '#f8f9fa',
+                paper_bgcolor: 'white',
+                height: Math.max(300, data.labels.length * 40)
+            };
+
+            const config = {
+                responsive: true,
+                displayModeBar: false
+            };
+
             Plotly.newPlot(elementId, [trace], layout, config);
-            console.log(`Chart created successfully for ${elementId}`);
+            console.log(`Plotly chart created for ${elementId}`);
+            return true;
         } catch (error) {
-            console.error(`Error creating chart for ${elementId}:`, error);
+            console.error(`Error creating Plotly chart for ${elementId}:`, error);
+            return false;
         }
     }
 
+    // Helper to create CSS bar chart (fallback)
+    function createBarChart(items, color, maxItems = 10) {
+        if (!items || items.length === 0) {
+            return '<p style="text-align: center; color: var(--gray); padding: 2rem;">No data available</p>';
+        }
+
+        const displayItems = items.slice(0, maxItems);
+        const maxValue = Math.max(...displayItems.map(item => item.count || 0));
+
+        return displayItems.map((item, index) => {
+            const percentage = maxValue > 0 ? (item.count / maxValue) * 100 : 0;
+            const delay = index * 0.1;
+
+            return `
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: var(--dark);">${item.name}</span>
+                        <span style="font-weight: 700; color: ${color};">${item.count} job${item.count !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style="
+                        background: #e2e8f0;
+                        border-radius: 8px;
+                        height: 32px;
+                        position: relative;
+                        overflow: hidden;
+                    ">
+                        <div style="
+                            background: linear-gradient(90deg, ${color}, ${color}dd);
+                            height: 100%;
+                            width: ${percentage}%;
+                            border-radius: 8px;
+                            display: flex;
+                            align-items: center;
+                            padding: 0 1rem;
+                            color: white;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: width 1s ease-out ${delay}s;
+                            animation: slideIn 1s ease-out ${delay}s both;
+                        ">
+                            ${item.percentage}%
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
     let html = `
+        <style>
+            @keyframes slideIn {
+                from {
+                    width: 0%;
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+        </style>
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-number">${stats.total_jobs}</div>
@@ -660,32 +718,8 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-laptop-code"></i> Top Technologies</h3>
-                <div id="chart-technologies" style="width: 100%; min-height: 400px;"></div>
-                <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
-                    ${stats.technologies.slice(0, 5).map((t, i) => {
-                        const colors = ['#667eea', '#764ba2', '#f093fb'];
-                        const color = colors[i % colors.length];
-                        return `
-                        <div style="
-                            background: linear-gradient(to right, ${color}15, transparent);
-                            border-left: 4px solid ${color};
-                            padding: 1rem;
-                            border-radius: 8px;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                        ">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <i class="fas fa-check-circle" style="color: ${color}; font-size: 1.2rem;"></i>
-                                <strong style="font-size: 1.1rem;">${t.name}</strong>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${t.percentage}%</div>
-                                <div style="font-size: 0.85rem; color: var(--gray);">Found in ${t.count} job${t.count !== 1 ? 's' : ''}</div>
-                            </div>
-                        </div>
-                    `}).join('')}
-                </div>
+                <p style="color: var(--gray); margin-bottom: 1.5rem;">Technologies found across all job descriptions</p>
+                ${usePlotly ? '<div id="chart-technologies" style="width: 100%; min-height: 400px;"></div>' : createBarChart(stats.technologies, '#667eea', 10)}
             </div>
         `;
     }
@@ -695,32 +729,8 @@ function displayStats(stats, charts) {
         html += `
             <div class="chart-container">
                 <h3><i class="fas fa-code"></i> Programming Languages</h3>
-                <div id="chart-languages" style="width: 100%; min-height: 400px;"></div>
-                <div style="margin-top: 1.5rem; display: grid; gap: 0.75rem;">
-                    ${stats.languages.slice(0, 5).map((l, i) => {
-                        const colors = ['#4ecdc4', '#44a08d', '#45b7d1'];
-                        const color = colors[i % colors.length];
-                        return `
-                        <div style="
-                            background: linear-gradient(to right, ${color}15, transparent);
-                            border-left: 4px solid ${color};
-                            padding: 1rem;
-                            border-radius: 8px;
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                        ">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <i class="fas fa-check-circle" style="color: ${color}; font-size: 1.2rem;"></i>
-                                <strong style="font-size: 1.1rem;">${l.name}</strong>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.3rem; font-weight: bold; color: ${color};">${l.percentage}%</div>
-                                <div style="font-size: 0.85rem; color: var(--gray);">Found in ${l.count} job${l.count !== 1 ? 's' : ''}</div>
-                            </div>
-                        </div>
-                    `}).join('')}
-                </div>
+                <p style="color: var(--gray); margin-bottom: 1.5rem;">Most requested programming languages</p>
+                ${usePlotly ? '<div id="chart-languages" style="width: 100%; min-height: 400px;"></div>' : createBarChart(stats.languages, '#4ecdc4', 10)}
             </div>
         `;
     }
