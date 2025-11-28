@@ -29,6 +29,7 @@ dependencies = [
     "supabase>=2.24.0",
     "uvicorn>=0.38.0",
     "weasyprint>=66.0",
+    "pypdf>=3.17.0",
 ]
 
 [project.urls]

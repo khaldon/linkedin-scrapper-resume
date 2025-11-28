@@ -18,9 +18,6 @@ import logging
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
 # Import existing modules
 from src.scraper import LinkedInScraper
 from src.database import Database
@@ -28,6 +25,10 @@ from src.llm_generator import LLMGenerator
 from src.stats_generator import generate_job_stats
 from src.pdf_converter import convert_md_to_pdf
 from src.firebase_auth import verify_firebase_token
+
+# Load environment variables
+load_dotenv()
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -261,7 +262,19 @@ async def generate_cv(
 
         # Read uploaded CV
         cv_content = await cv_file.read()
-        current_cv = cv_content.decode("utf-8")
+
+        # Extract text if PDF
+        if cv_file.filename.lower().endswith(".pdf"):
+            from src.pdf_converter import extract_text_from_pdf
+
+            current_cv_text = extract_text_from_pdf(cv_content)
+            if not current_cv_text:
+                raise HTTPException(
+                    status_code=400, detail="Could not extract text from PDF"
+                )
+        else:
+            # Assume text/markdown
+            current_cv_text = cv_content.decode("utf-8")
 
         # Get job from database
         db = Database()
@@ -272,7 +285,7 @@ async def generate_cv(
 
         # Generate tailored CV using configured LLM service
         llm = LLMGenerator()
-        tailored_cv = llm.generate_tailored_cv(job["full_description"], current_cv)
+        tailored_cv = llm.generate_tailored_cv(job["full_description"], current_cv_text)
 
         # Save CV
         cv_filename = f"data/tailored_cv_{job_id}.md"
@@ -284,7 +297,7 @@ async def generate_cv(
         convert_md_to_pdf(cv_filename, pdf_filename)
 
         # Save to database
-        db.save_generated_cv(job_id, current_cv, tailored_cv)
+        db.save_generated_cv(job_id, current_cv_text, tailored_cv)
 
         return {
             "job_id": job_id,

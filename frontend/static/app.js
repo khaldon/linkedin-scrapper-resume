@@ -466,6 +466,11 @@ document.getElementById('generate-form')?.addEventListener('submit', async (e) =
     const loadingDiv = document.getElementById('generate-loading');
     const resultDiv = document.getElementById('generate-result');
 
+    if (!jobId) {
+        showAlert('generate-alert', 'error', 'Please select a job from the list.');
+        return;
+    }
+
     if (!cvFile) {
         showAlert('generate-alert', 'error', 'Please upload a CV file');
         return;
@@ -481,13 +486,66 @@ document.getElementById('generate-form')?.addEventListener('submit', async (e) =
 
     try {
         const token = await getAuthToken();
-        const headers = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+        
+        // Use XMLHttpRequest for progress tracking
+        const response = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            
+            // Progress event
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    const progressBar = document.getElementById('upload-progress-bar');
+                    const percentageText = document.getElementById('upload-percentage');
+                    const progressContainer = document.getElementById('upload-progress-container');
+                    
+                    if (progressContainer) progressContainer.classList.remove('hidden');
+                    if (progressBar) progressBar.style.width = percentComplete + '%';
+                    if (percentageText) percentageText.textContent = percentComplete + '%';
+                    
+                    if (percentComplete === 100) {
+                        if (percentageText) percentageText.textContent = 'Processing...';
+                    }
+                }
+            });
 
-        const response = await fetch(`${API_URL}/api/generate-cv`, {
-            method: 'POST',
-            headers,
-            body: formData
+            xhr.open('POST', `${API_URL}/api/generate-cv`);
+            
+            if (token) {
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+            }
+
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try {
+                        resolve({
+                            ok: true,
+                            json: () => Promise.resolve(JSON.parse(xhr.responseText))
+                        });
+                    } catch (e) {
+                        reject(new Error('Invalid JSON response'));
+                    }
+                } else {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        resolve({
+                            ok: false,
+                            json: () => Promise.resolve(errorData),
+                            detail: errorData.detail
+                        });
+                    } catch (e) {
+                        resolve({
+                            ok: false,
+                            json: () => Promise.resolve({ detail: xhr.statusText }),
+                            detail: xhr.statusText
+                        });
+                    }
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('Network request failed'));
+            
+            xhr.send(formData);
         });
 
         const data = await response.json();
@@ -519,6 +577,15 @@ document.getElementById('generate-form')?.addEventListener('submit', async (e) =
     } catch (error) {
         loadingDiv.classList.add('hidden');
         showAlert('generate-alert', 'error', `Network error: ${error.message}`);
+    }
+});
+
+// File input listener
+document.getElementById('cv-file')?.addEventListener('change', function(e) {
+    const fileName = e.target.files[0]?.name;
+    const label = document.getElementById('file-name');
+    if (fileName && label) {
+        label.textContent = fileName;
     }
 });
 

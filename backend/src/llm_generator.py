@@ -59,7 +59,7 @@ class LLMGenerator:
 
         Args:
             job_description: The job description to tailor the CV for
-            current_cv: The current CV content
+            current_cv: The current CV content (text extracted from PDF or raw text)
 
         Returns:
             Tailored CV in Markdown format
@@ -103,25 +103,32 @@ class LLMGenerator:
 **JOB DESCRIPTION:**
 {job_description}
 
-**CURRENT CV:**
+**CURRENT CV CONTENT:**
 {current_cv}
 
 **YOUR TASK:**
 Rewrite the current CV to be perfectly tailored for the job description above. Follow these guidelines:
 
-1. **ATS Optimization**: Extract key skills, technologies, and keywords from the job description and naturally incorporate them throughout the CV
-2. **Relevance**: Highlight and expand on experiences and skills that directly relate to the job requirements
-3. **Truthfulness**: Maintain complete honesty - only reframe existing experiences, never fabricate
-4. **Impact**: Use action-oriented language and quantify achievements where possible
-5. **Structure**: Keep the same general structure but optimize content for this specific role
-6. **Professional Tone**: Use professional, confident language that showcases expertise
-7. **Format**: Output in clean Markdown format with proper headers and bullet points
+1. **ATS Optimization**: Extract key skills, technologies, and keywords from the job description and naturally incorporate them throughout the CV.
+2. **Relevance**: Highlight and expand on experiences and skills that directly relate to the job requirements.
+3. **Truthfulness**: Maintain complete honesty - only reframe existing experiences, never fabricate.
+4. **Impact**: Use action-oriented language and quantify achievements where possible.
+5. **Structure**: Create a professional layout with the following sections:
+   - **Header**: Name and Contact Info (keep from original)
+   - **Professional Summary**: A strong 3-4 line summary tailored to the role
+   - **Skills**: A categorized list of relevant technical and soft skills
+   - **Experience**: Chronological work history with bullet points focusing on achievements relevant to this job
+   - **Education**: Degree, University, and Year
+   - **Projects** (if applicable): Relevant projects that demonstrate required skills
+
+6. **Professional Tone**: Use professional, confident language that showcases expertise.
+7. **Format**: Output in clean Markdown format. Use # for main headers and ## for subheaders. Do NOT use code blocks for the entire output.
 
 **IMPORTANT NOTES:**
-- Keep the candidate's name and contact information unchanged
-- Focus on making existing experiences more relevant to the target role
-- If the current CV lacks certain required skills, don't add them - instead emphasize transferable skills
-- Maintain the same level of seniority - don't inflate or deflate the candidate's position
+- Keep the candidate's name and contact information unchanged.
+- Focus on making existing experiences more relevant to the target role.
+- If the current CV lacks certain required skills, don't add them - instead emphasize transferable skills.
+- Maintain the same level of seniority - don't inflate or deflate the candidate's position.
 
 Generate the tailored CV now in Markdown format:"""
 
