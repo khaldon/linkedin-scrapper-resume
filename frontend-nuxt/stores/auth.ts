@@ -9,9 +9,9 @@ import {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: null,
+    user: null as any, // Using any for now to avoid complex User type import issues, or import User from firebase/auth
     loading: true,
-    error: null
+    error: null as string | null
   }),
 
   getters: {
@@ -19,13 +19,37 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async syncUserWithBackend(user: any) {
+      if (!user) return
+      
+      const config = useRuntimeConfig()
+      const apiBase = config.public.apiBase
+      
+      try {
+        const token = await user.getIdToken()
+        await $fetch(`${apiBase}/api/auth/sync`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+      } catch (error) {
+        console.error('Error syncing user with backend:', error)
+      }
+    },
+
     async initAuth() {
       const { $auth } = useNuxtApp()
       
       return new Promise((resolve) => {
-        onAuthStateChanged($auth, (user) => {
+        onAuthStateChanged($auth, async (user) => {
           this.user = user
           this.loading = false
+          
+          if (user) {
+            await this.syncUserWithBackend(user)
+          }
+          
           resolve(user)
         })
       })
@@ -40,12 +64,14 @@ export const useAuthStore = defineStore('auth', {
       try {
         this.error = null
         await signInWithPopup($auth, provider)
-      } catch (error) {
+        // onAuthStateChanged will handle the sync
+      } catch (error: any) {
         console.error('Google Sign-In Error:', error)
         if (error.code === 'auth/popup-blocked') {
            await signInWithRedirect($auth, provider)
         } else {
           this.error = error.message
+          throw error
         }
       }
     },
@@ -55,7 +81,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         await signOut($auth)
         this.user = null
-      } catch (error) {
+      } catch (error: any) {
         console.error('Logout Error:', error)
         this.error = error.message
       }

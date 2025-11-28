@@ -18,7 +18,16 @@ export default defineNuxtConfig({
   
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080',
+      firebase: {
+        apiKey: "AIzaSyANDCAB8VI00JIVoRKLyXtc2FateShvn_c",
+        authDomain: "linkedscrapper.firebaseapp.com",
+        projectId: "linkedscrapper",
+        storageBucket: "linkedscrapper.firebasestorage.app",
+        messagingSenderId: "537959019488",
+        appId: "1:537959019488:web:945b43c36a4bb6c198f185",
+        measurementId: "G-HFP9095PCP"
+      }
     }
   }
 })
